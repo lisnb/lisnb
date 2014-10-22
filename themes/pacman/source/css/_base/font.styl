@@ -1,6 +1,13 @@
-/*! custom Font*/
+/*! custom icon*/
+icon-url(filename)
+  //return '../font/' + filename
+  return 'http://libs.useso.com/js/font-awesome/4.1.0/fonts/' + filename
+
+/*! custom font */
 font-url(filename)
   return '../font/' + filename
+
+
 
 customfont(family, filename)
   @font-face
@@ -21,10 +28,10 @@ iconfont(family, filename,font-icon-version)
     font-family family
     font-style normal
     font-weight normal
-    src url(font-url(filename + ".eot?v=#" + font-icon-version))
-    src url(font-url(filename + ".eot?#iefix&v=#" + font-icon-version)) format("embedded-opentype"),
-         url(font-url(filename + ".woff?v=#" + font-icon-version)) format("woff"),
-         url(font-url(filename + ".ttf?v=#" + font-icon-version)) format("truetype"),
-         url(font-url(filename + ".svg#fontawesomeregular?v=#" + font-icon-version)) format("svg")
+    src url(icon-url(filename + ".eot?v=#" + font-icon-version))
+    src url(icon-url(filename + ".eot?#iefix&v=#" + font-icon-version)) format("embedded-opentype"),
+         url(icon-url(filename + ".woff?v=#" + font-icon-version)) format("woff"),
+         url(icon-url(filename + ".ttf?v=#" + font-icon-version)) format("truetype"),
+         url(icon-url(filename + ".svg#fontawesomeregular?v=#" + font-icon-version)) format("svg")
 
 iconfont(font-icon-family,font-icon-filename,font-icon-version)
