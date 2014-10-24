@@ -1,4 +1,4 @@
-title: < chrome extension >noweibo
+title: (chrome extension) noweibo
 date: 2014-09-20 20:34:48
 tags: 
 - chrome extension
