@@ -77,7 +77,7 @@ author:
 #### Comment
 duoshuo: 
   enable: true  ## duoshuo.com
-  short_name:    ## duoshuo short name.
+  short_name: lisnb    ## duoshuo short name.
 
 #### Share button
 jiathis:

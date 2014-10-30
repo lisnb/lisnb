@@ -23,11 +23,7 @@
 						<input type="text" id="search" autocomplete="off" name="q" maxlength="20" placeholder="<%= __('search') %>" />
 					</form>
 					<% } else { %>
-					<form class="search" action="//google.com/search" method="get" accept-charset="utf-8">
-						<label>Search</label>
-						<input type="text" id="search" name="q" autocomplete="off" maxlength="20" placeholder="<%= __('search') %>" />
-						<input type="hidden" name="q" value="site:<%- config.url.replace(/^https?:\/\//, '') %>">
-					</form>
+						<%- partial('baidusearch') %>
 					<% } %>
 					</li>
 				</ul>
