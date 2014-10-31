@@ -3,11 +3,11 @@ date: 2014-06-19 23:33:40
 tags:
 - linux
 - gdb
-- cpp
+- C++ 
 - coredumped
 categories: 
 - linux
-- cpp
+- C++ 
 ---
 > 
 说的都没错，但听起来怪怪的
