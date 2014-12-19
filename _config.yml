@@ -87,6 +87,18 @@ baidusitemap:
 # Deployment
 ## Docs: http://hexo.io/docs/deployment.html
 deploy:
-  type: github
-  repository: https://gitcafe.com/lisnb/lisnb.git
-  branch: gitcafe-pages
+  type: git
+  repo:
+    github: git@github.com:lisnb/lisnb.git,gh-pages
+    gitcafe: git@gitcafe.com:lisnb/lisnb.git,gitcafe-pages
+#- type: github
+#  repository: git@github.com:lisnb/lisnb.git 
+#  branch: gh-pages
+#repo:
+#github: git@github.com:lisnb/lisnb.git,gh-pages
+#gitcafe: git@gitcafe.com:lisnb/lisnb.git,gitcafe-pages
+#- type: github
+#  repository: git@gitcafe.com:lisnb/lisnb.git
+#  branch: gitcafe-pages
+   
+

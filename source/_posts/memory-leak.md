@@ -8,8 +8,8 @@ tags:
 - valgrind
 - memcheck
 categories:
-- linux
-- C++
+- C++ 
+- Linux 
 
 ---
 
