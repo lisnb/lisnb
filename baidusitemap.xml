@@ -1,0 +1,982 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/10/31/memory-leak/</loc>
+    <lastmod>2014-12-19T12:39:53.000Z</lastmod>
+    <data>
+        <display>
+        <title>Linux下C++内存泄漏检测</title>
+        <content><![CDATA[<h2 id="内存泄漏_！-_！内存泄露">内存泄漏 ！- ！内存泄露</h2>
+<p>应该是前者<br><a id="more"></a><br><a href="http://zh.wikipedia.org/wiki/内存泄漏" target="_blank" rel="external">维基百科 内存泄露 — Wikipedia, the free encyclopedia.</a>中用的是“泄漏”。另外，“泄露”，多指信息，机密被不该知道的人知道了，而“泄漏”除了包含以上意思之外，还包括气体液体流出等，为什么我突然想做一个比喻：从嘴里出来的就是泄露，从菊花里出来的就是泄漏[抠鼻]。所以，当形容非抽象的东西跑出来的时候，应该用“泄漏”，也就应该是“内存泄漏”</p>
+<hr>
+<h2 id="valgrind">valgrind</h2>
+<p>在改一个组里的组件，因为C++写的不是特别多，所以改完了不太放心，一旦跑起来不崩溃，那最担心的就是内存泄漏的问题。弄了几天，记录一下。<br>网上查到了挺多工具，最后用的是<a href="http://valgrind.org" target="_blank" rel="external">valgrind</a>, 优点是不用添加什么编译选项（不像<em>grpof</em>，需要在编译的时候使用<code>-pg</code>，但还是建议加调试选项，即<code>-g</code>，这样最后在看报告的时候会更清晰。关于如何在<em>cmake</em>中使用调试选项，在<a href="http://lixipeng.me/2014/06/19/gdb-coredumped/" target="_blank" rel="external">这篇</a>里提到过）。</p>
+<h3 id="原理">原理</h3>
+<p>我挺想能了解一下原理的，但现在还没有时间，所以如果以后有机会（因为肯定还会用到），希望能够把这个补上。</p>
+<h3 id="使用">使用</h3>
+<p>加入你的可执行文件是<code>libido arg1 arg2 ...</code>，那最简单的使用方法就是：</p>
+<pre><code>valgrind --leak-check=yes libido arg1 arg2 <span class="keyword">...</span>
+</code></pre><p>你的程序会比之前慢好多，大概有20到30倍左右，还会用好多内存。然后valgrind就会把所有的信息都输出出来。</p>
+<h4 id="输出到文件中">输出到文件中</h4>
+<p>如果你想把这些信息输出到文件中，以备之后分析，那可以将输出重定向，但应该注意的是，如果你只用以下命令：</p>
+<pre><code>valgrind --leak-check=yes libido arg1 <span class="keyword">...</span> &gt; memleak.report.1
+</code></pre><p>那最后<em>memleak.report.1</em>这个文件中只会有libido的输出，并不会有检测到的信息，因为你程序的输出是 stdout(标准输出文件，宏定义是1)，但valgrind的检测信息实际上是关于内存的错误信息，所以使用的流应该是 stderr(标准错误输出文件，宏定义是2)，上面的命令只将 1 的内容重定向到了<em>memleak.report.1</em>中，但3没有，所以需要对3进行重定向，使用：</p>
+<pre><code>valgrind --leak-check=yes libido arg1 <span class="keyword">...</span> &gt; memleak.report.1 <span class="number">2</span>&gt;<span class="number">1</span>
+或者
+valgrind --leak-check=yes libido arg2 <span class="keyword">...</span> &amp;&gt; memleak.report.1
+</code></pre><h4 id="使用screen命令">使用screen命令</h4>
+<p>当然这可能还有一个问题，就是因为运行时间会很长，所以你可能决定晚上的时候让它运行，你先回宿舍，并且把路由器拔走（比如我… ），那就需要使用screen命令，但使用screen命令的时候要注意，直接使用：</p>
+<pre><code>screen valgrind vgargs <span class="keyword">...</span> libido args <span class="keyword">...</span> &amp;&gt; memleak.report.1
+</code></pre><p>是没有办法达到目的的，原因我不太清楚，你可以用</p>
+<pre><code><span class="input"><span class="prompt">screen ls &gt;</span> <span class="number">1</span>.txt</span>
+</code></pre><p>试一下，<em>1.txt</em>中是没有内容的。可能是因为标准输出文件更改了？所以如果要用screen的话，就要先使用screen命令打开新的窗口，然后再使用之前的命令，就可以把信息输出到文件中了，敲完命令，<code>Ctrl+a,d</code>,detach一下，你就可以回宿舍了。</p>
+<h4 id="—log-file">—log-file</h4>
+<p>当然输出到文件这种简单的功能肯定本身就带了…<br>使用<em>—log-file</em>可以指定报告文件，文件名中还可以使用变量，比如<code>%p</code>代表当前的进程号，比如当前的进程号是 38324，那么</p>
+<pre><code>valgrind --leak-check=yes --<span class="keyword">log</span>-<span class="keyword">file</span>=<span class="variable">%p</span>.memleak.report
+</code></pre><p>那么会得到一个<em>38324.memleak.report</em>的文件。当然还有其他的参数，可以参考官方文档，其中<code>%</code>可以转义，使用<code>%%</code>。</p>
+<h3 id="几个参数">几个参数</h3>
+<p>其实我也没用几个… </p>
+<p><code>--leak-check=&lt;no|summary|yes|full&gt; [default: summary]</code><br>　　当打开此选项时，检测内存泄漏，如果设置成<code>summary</code>，那只在最后给一个结论，就是泄漏了没有，泄漏了多少；如果设置成<code>yes</code>或者<code>full</code>，会给出泄漏的细节</p>
+<p><code>--track-origins=&lt;yes|no&gt; [default: no]</code><br>　　控制是否跟踪那些没有初始化的值，默认不跟踪… 我晕… 我还自己写脚本把那些给去掉，看来不用指定… 如果指定了，在报告中会有体现，一会说… 
+　　</p>
+<h3 id="报告解读">报告解读</h3>
+<h4 id="LEAK_SUMMARY">LEAK SUMMARY</h4>
+<p>会列出总结</p>
+<pre><code>=<span class="ruby">=<span class="number">45924</span>== <span class="constant">LEAK</span> <span class="constant">SUMMARY</span><span class="symbol">:</span>
+</span>=<span class="ruby">=<span class="number">45924</span>==    definitely <span class="symbol">lost:</span> <span class="number">10</span> bytes <span class="keyword">in</span> <span class="number">1</span> blocks
+</span>=<span class="ruby">=<span class="number">45924</span>==    indirectly <span class="symbol">lost:</span> <span class="number">0</span> bytes <span class="keyword">in</span> <span class="number">0</span> blocks
+</span>=<span class="ruby">=<span class="number">45924</span>==      possibly <span class="symbol">lost:</span> <span class="number">0</span> bytes <span class="keyword">in</span> <span class="number">0</span> blocks
+</span>=<span class="ruby">=<span class="number">45924</span>==    still <span class="symbol">reachable:</span> <span class="number">0</span> bytes <span class="keyword">in</span> <span class="number">0</span> blocks
+</span>=<span class="ruby">=<span class="number">45924</span>==         <span class="symbol">suppressed:</span> <span class="number">25</span>,<span class="number">264</span> bytes <span class="keyword">in</span> <span class="number">377</span> blocks </span>
+</code></pre><h4 id="Memory_leak_detection">Memory leak detection</h4>
+<p>(这里翻译一下文档，我觉得是最有意思的部分)</p>
+<p>Memcheck 跟踪由 <code>malloc/new</code> 等等在堆上申请的 blocks，所以当程序退出的时候，它能够知道哪些blocks没有被释放掉。<br>如果正确的设置了 <code>--leak-check</code> 选项，那对于剩下的那些没有被释放掉的blocks，valgrind会逐一的在 <code>root-set</code> 中确定是否仍然是可达的。这个 <code>root-set</code> 由两部分组成，一部分是所有线程的<code>通用目的暂存器(General Purpose Registers, GPRs)</code>，另一部分记录了那些包括栈空间在内的内存的用户空间中被分配的，初始化的，指针指向的数据字等。<br>如果想要访问一个 block， 有两种方法。第一种就是通过 “<code>头指针(start-pointer)</code>”，即那些指向一个 block 起始地址的指针；第二种是“<code>中间指针(interior-pointer)</code>”，就是那些指向一个 block 中间的指针。有以下几种情况，会导致出现这种 中间指针：</p>
+<ul>
+<li>可能这个指针一开始是指向block的开始的，但可能在程序中被故意或者无意间移动了。尤其当你使用了<code>tagged pointer</code>时，<strong>i.e. if it uses the bottom one, two or three bits of a pointer, which are normally always zero due to alignment, in order to store extra information</strong>(没懂，tagged pointer是啥… )</li>
+<li>可能是内存中的垃圾，随机出现的，一点关系都没有，只是巧合</li>
+<li>可能是指向C++<code>std::string</code>的内部 char 型数组的指针。例如，有些编译器会在std::string的前面加上三个字（word）来存储这个字符串的长度，字符串的容量还有引用数目，然后再去存真正的字符数组。所以返回的字符数组的地址是三个字后的地址</li>
+<li>有些代码可能申请了一个 block的内存，然后用前八个字节存储（block的大小-8）一个64位的数，<code>sqlite3MemMalloc</code>就这么干</li>
+<li>可能指向的是用<code>new[]</code>申请的C++的对象（有析构函数）的数组。在这种情况下，有的编译器会在申请的block最前面，用一个<code>magic cookie</code>存储这个数组的长度，然后略过这个magic cookie，返回数组的地址。在<a href="http://theory.uwinnipeg.ca/gnu/gcc/gxxint_14.html" target="_blank" rel="external">这里</a>能找到更多的信息。</li>
+<li>也可能是指向了一个使用了多重继承的C++对象的成员</li>
+</ul>
+<p>在内存检测的过程中，你也可以选择性的打开启发式检测，来检测由上述几种情况（<code>stdstring</code>,<code>length64</code>,<code>newarray</code>,<code>multipleinheritance</code>）导致的中间指针。如果启发式检测被激活，那么如果检测到由上述几种情况导致的中间指针，那么该block仍然会被认为是可达的，就像这个指针也是头指针一样。<br>基于此，来看一下下述的9种可能的情况：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Pointer chain</th>
+<th>AAA Leak Case</th>
+<th>BBB Leak Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>RRR ——————&gt; BBB</td>
+<td></td>
+<td>DR</td>
+</tr>
+<tr>
+<td>2</td>
+<td>RRR —-&gt; AAA —-&gt; BBB</td>
+<td>DR</td>
+<td>IR</td>
+</tr>
+<tr>
+<td>3</td>
+<td>RRR 　　　　　　BBB　　　</td>
+<td></td>
+<td>DL</td>
+</tr>
+<tr>
+<td>4</td>
+<td>RRR　　 AAA —-&gt; BBB 　</td>
+<td>DL</td>
+<td>IL</td>
+</tr>
+<tr>
+<td>5</td>
+<td>RRR ———?——-&gt; BBB</td>
+<td></td>
+<td>(y)DR, (n)DL</td>
+</tr>
+<tr>
+<td>6</td>
+<td>RRR —-&gt; AAA -?-&gt; BBB</td>
+<td>DR</td>
+<td>(y)IR, (n)DL</td>
+</tr>
+<tr>
+<td>7</td>
+<td>RRR -?-&gt; AAA —-&gt; BBB</td>
+<td>(y)DR, (n)DL</td>
+<td>(y)IR, (n)IL</td>
+</tr>
+<tr>
+<td>8</td>
+<td>RRR -?-&gt; AAA -?-&gt; BBB</td>
+<td>(y)DR, (n)DL</td>
+<td>(y,y)IR, (n,y)IL, (_,n)DL</td>
+</tr>
+<tr>
+<td>9</td>
+<td>RRR 　　 AAA -?-&gt; BBB</td>
+<td>DL</td>
+<td>(y)IL, (n)DL</td>
+</tr>
+</tbody>
+</table>
+<p>指针图例：</p>
+<ul>
+<li><code>RRR</code> ：一个 root set 节点，或者一个直接可达的block</li>
+<li><code>AAA</code>,<code>BBB</code> ： 堆上的 block</li>
+<li><code>---&gt;</code> ：一个头指针</li>
+<li><code>-?-&gt;</code> ：一个中间指针</li>
+</ul>
+<p>内存泄漏图例：</p>
+<ul>
+<li><code>DR</code> ：直接可达</li>
+<li><code>IR</code> ：间接可达</li>
+<li><code>DL</code> ：直接泄漏</li>
+<li><code>IL</code> ：间接泄漏</li>
+<li><code>(y)XY</code> ：如果中间指针是<code>real-pointer</code>（真的指针？），那么就XY</li>
+<li><code>(n)XY</code> ：如果中间指针不是<code>real-pointer</code>（真的指针？），那么就XY</li>
+<li><code>(_)XY</code> ：无论是不是<code>real-pointer</code>（真的指针？），都XY</li>
+</ul>
+<p>每一种可能的泄漏情况，都能归结为上述九种之一，Memcheck工具在输出时，对结果做了合并，得到以下几种输出结果：</p>
+<ul>
+<li><code>Still reachable</code>. 对于BBB块来说，这涵盖了上述的 1 和 2， 有头指针或者头指针链表指向了BBB。 因为有指针指向这个块，那么至少在原则上，当程序退出的时候，程序员会把它释放掉。“Still reachable” 的块是一种很常见的情况，基本不是什么问题，所以默认情况下，Memecheck不会单独把它报出来</li>
+<li><code>Definitely lost</code>. 对于BBB来说，这是上述的情况3。没有指针指向BBB块了。所以这个块就被标示为“丢失”,因为在程序员基本已经不可能在程序退出的时候把它给释放掉了，因为没有指针指向它（<em>找不到了</em>）。一般是由于在前面的代码中，丢掉了指向这个块的指针，程序员应该对此负责！</li>
+<li><code>Indirectly lost</code>. 对于BBB来说，这涵盖了上述的情况4和情况9。这意味着这些块丢失了，但不是因为没有指针指向它，而是因为指向它们的块自己本身也丢失了（<em>这里的AAA相当于情况3中的BBB</em>），比如说有一棵二叉树，但指向根节点的指针不见了，那它所有的子孙节点都“Indirectly lost”。因为一旦“Definitely lost”的块找回来了，那么这些间接丢失的块就能够找回来，所以Memcheck也不会单独的报出来</li>
+<li><code>Possibly lost</code>. 这涵盖了上述的情况5-8，仍然是对于BBB来说。确实是有至少一个指针指向这个块，但其中至少有一个是中间指针。这也有可能恰好一个内存中的随机值，恰好是这个block中的地址，所以除非你知道有中间指针确实存在，否则你应该给予关注。</li>
+</ul>
+<p>另外，<strong>if suppressions exists for a block, it will be reported as “suppressed” no matter what which of the above four kinds it belongs to</strong>(suppression 不知道是啥… )</p>
+<p>如果指定了<code>--leak-check=full</code>，那对于每个绝对丢失或者可能丢失的情况，Memcheck都会给出具体的细节，包括内存是在哪里申请的。（实际上，它把所有因为同样原因发生泄漏，并且有“同样”堆栈信息的记录合并到一起。当然，你可以通过“—leak-resolution”来定义“同样”。）它不能告诉你什么时候，或者为什么发生了内存泄漏，这些需要你自己去弄i。通常，你得尽可能的让自己的程序中不会产生任何”definitely lost”或者”possibly lost”，然后安全退出。</p>
+<p>例如：</p>
+<blockquote>
+<p>8 bytes in 1 blocks are definitely lost in loss record 1 of 14<br>　　at 0x……..: malloc (vg_replace_malloc.c:…)<br>　　by 0x……..: mk (leak-tree.c:11)<br>　　by 0x……..: main (leak-tree.c:39)<br>88 (8 direct, 80 indirect) bytes in 1 blocks are definitely lost in loss record 13 of 14<br>　　at 0x……..: malloc (vg_replace_malloc.c:…)<br>　　by 0x……..: mk (leak-tree.c:11)<br>　　by 0x……..: main (leak-tree.c:25)<br>　　<br>第一条信息描述的是一个很简单的情况，即：一个block中的8个字节直接丢失了。第二条中提到了另外的8个字节也直接丢失了，不同的是，还有80字节因为这8个字节的直接丢失而间接丢失了。这些内存丢失的信息的输出没有什么特定的顺序，所以信息的编号没有太多实际的意义。这些编号可以在使用Valgrind gdbserver的时候，用来列出泄漏的内存块的地址，并且能给出关于这个块为什么还是可达的详细信息。</p>
+</blockquote>
+<p>当指定了<code>--leak-check=full</code>时，可以使用<code>--show-leak-kinds=&lt;set&gt;</code>来指定所要显示的泄漏的类型。<br><code>&lt;set&gt;</code>，如果想要通过这个set指定显示的类型，可以使用以下方法：</p>
+<ul>
+<li>在<code>definite</code>,<code>indirect</code>,<code>possible</code>,<code>reachable</code>中，选择一项或者多项，然后用逗号隔开 </li>
+<li><code>all</code> 用来选择所有的类型</li>
+<li><code>none</code> 什么都不显示</li>
+</ul>
+<h3 id="编译器优化">编译器优化</h3>
+<p>上面的文档介绍的是泄漏的症状，在对组件进行测试的时候，所有这里列出的情况都遇到了，还有一些很奇怪的情况，比如：</p>
+<pre><code><span class="keyword">string</span> reck = <span class="string">"pull up to the parties"</span>;
+</code></pre><p>这句也会报内存泄漏。<br>这个情况查了挺长时间，后来找到了<a href="http://valgrind.org/docs/manual/faq.html" target="_blank" rel="external">可能的原因</a>：<br>有一些编译器在编译的时候会做一些优化，有一些对象在析构了之后，并没有被马上还给OS，而是缓存在一个池里，等待重用，这可能是一个原因。<br>所以在进行内存检测时候，应该尽量关闭编译器的优化，用最原生态的去测试（可能还会慢上若干倍）。<br>对于上面提到的这个问题，有一个变量可以控制，<code>GLIBCXX_FORCE_NEW</code>，可以控制编译器，每次都重新申请，而不适用池的机制。<br>使用这个变量，就在你当前的终端上输入： </p>
+<pre><code><span class="keyword">export</span> GLIBCXX_FORCE_NEWS=<span class="number">1</span>
+</code></pre><p>然后进行编译，注意，<strong>这并不是一个CMAKE参数</strong>。</p>
+<h2 id="总结">总结</h2>
+<p>本来是想连性能测试都放在一起的，不过感觉太长了。<br>就是把自己学到的一点东西，在这里记录一下。</p>
+]]></content>
+        
+        <tag>linux </tag>
+         
+        <tag>内存泄漏 </tag>
+         
+        <tag>memory leak </tag>
+         
+        <tag>C++ </tag>
+         
+        <tag>valgrind </tag>
+         
+        <tag>memcheck </tag>
+         
+         
+        <pubTime>2014-10-31T08:14:08.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="C++" url="http://lixipeng.me/categories/C++/"/>
+          
+             
+              <breadCrumb title="Linux" url="http://lixipeng.me/categories/C++/Linux/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/12/18/stdiosrdbuf/</loc>
+    <lastmod>2014-12-19T12:39:31.000Z</lastmod>
+    <data>
+        <display>
+        <title>std::ios::rdbuf</title>
+        <content><![CDATA[<p>今天回食堂吃饭，在路上跟范老师讨论C++读文件的事情。<br>然后就提到怎么把文件内容全部读到字符串里，因为C++不像python，写起来那么简单</p>
+<pre><code><span class="keyword">f</span>=<span class="keyword">open</span>(<span class="string">'./c++_primer.areyoukiddingme'</span>,<span class="string">'rb'</span>)
+</code></pre><p>我现在用在stackoverflow上查到的一个snippet</p>
+<figure class="highlight cpp"><figcaption><span>read.cpp</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;iostream&gt;</span></div><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;fstream&gt;</span></div><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;sstream&gt;</span></div><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;cstdlib&gt;</span></div><div class="line"></div><div class="line"><span class="keyword">void</span> run()</div><div class="line">{</div><div class="line">	std::ifstream fio(<span class="string">"./c++_primer.areyoukiddingme"</span>);</div><div class="line">	std::<span class="built_in">stringstream</span> ss;</div><div class="line">	ss &lt;&lt; fio.rdbuf();</div><div class="line">	std::<span class="built_in">string</span> s(ss.str());</div><div class="line">	std::<span class="built_in">cout</span>&lt;&lt; s &lt;&lt;std::endl;</div><div class="line">}</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">int</span> main()</div><div class="line">{</div><div class="line">	run();</div><div class="line">	<span class="keyword">return</span> EXIT_SUCCESS;</div><div class="line">}</div></pre></td></tr></table></figure>
+
+<p>感觉这已经是最简单的读取文件全部内容的代码了。<br>然后就开始讨论rdbuf到底是干嘛的。<br><a href="http://www.cplusplus/reference/ios/ios/rdbuf" target="_blank" rel="external">cplusplus</a>有详细介绍。<br>rdbuf(std::ios::rdbuf)，来自头文件 ios 和 iostream. 是一个重载了的函数。</p>
+<pre><code><span class="function">get</span>(1)    streambuf *<span class="function">rdbuf</span>() const;
+<span class="function">set</span>(2)    streambuf *<span class="function">rdbuf</span>(streambuf *sb);
+</code></pre><p>第一种形式，用来返回指向该流当前关联的流缓冲区对象（<em>stream buffer</em>），第二种形式用来将当前流关联到<em>sb</em>指向的流换中去对象上，并且清空所有的错误状态。<br>如果<em>sb</em>是一个空指针<em>null pointer</em>，这个函数会自动将badbit置位，有可能触发异常。<br>有一些派生类（如<code>stringstream</code>和<code>fstream</code>）保留有它们自己的内部缓冲区对象，当构造函数被调用时，与之关联。所以在调用这个函数改变关联的缓冲区对象时不会影响到它们原来的内部的缓冲区对象：因为他们会关联到一个和它们原来的缓冲区对象不同的缓冲区对象上。（就像这个函数一样，输入输出操作其实都是基于它们关联的缓冲区对象的）。<br>这个函数会返回在调用之前，该流关联的缓冲区对象。<br>比如：</p>
+<figure class="highlight cpp"><figcaption><span>rdbuf.cpp</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;iostream&gt;</span></div><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;fstream&gt;</span></div><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;cstdlib&gt;</span></div><div class="line"></div><div class="line"><span class="keyword">void</span> run()</div><div class="line">{</div><div class="line">	std::streambuf *psbuf, *backup;</div><div class="line">	std::ofstream filestr;</div><div class="line">	filestr.open(<span class="string">"./c++_primer.areyoukiddingme"</span>);</div><div class="line">	backup = std::<span class="built_in">cout</span>.rdbuf();<span class="comment">//备份cout原来的内部缓冲区对象，第一种形式</span></div><div class="line">	psbuf=filestr.rfbuf(); <span class="comment">//获得文件流的缓冲区对象，第一种形式</span></div><div class="line">	std::<span class="built_in">cout</span>.rdbuf(psbuf); <span class="comment">//将cout关联到文件流的缓冲区对象，第二种形式</span></div><div class="line">	<span class="comment">//因为流的输入输出都是对内部缓冲区的操作，所以这里cout输出的时候实际上操作的时文件流的缓冲区对象</span></div><div class="line">	std::<span class="built_in">cout</span>&lt;&lt;<span class="string">"This will be written to the file instead of the stdout"</span>&lt;&lt;std::endl;</div><div class="line">	std::<span class="built_in">cout</span>.rdbuf(backup);<span class="comment">//还原cout的内部缓冲区对象。</span></div><div class="line">	filestr.close();</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">int</span> main()</div><div class="line">{</div><div class="line">	run();</div><div class="line">	<span class="keyword">return</span> EXIT_SUCCESS;</div><div class="line">}</div></pre></td></tr></table></figure>
+
+<p>程序运行时，那个字符串不会出现在标准输出上，会出现在文件里。</p>
+<p>所以在第一个snippet中</p>
+<pre><code><span class="literal">ss</span>&lt;&lt;fio.rdbuf()
+</code></pre><p>就是获得fio的缓冲区对象，再把其中的内容输出到ss流中，最后通过ss.str()获得表示的字符串。<br>那能不能直接将ss关联到fio的内部缓冲区上呢，比如：</p>
+<pre><code><span class="literal">ss</span>.rdbuf(fio.rdbuf())
+</code></pre><p>这个会报错：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">➜io  clang++ -o <span class="built_in">read</span> read.cpp</div><div class="line">read.cpp:<span class="number">16</span>:<span class="number">14</span>: error: too many arguments to function call, expected <span class="number">0</span>, have <span class="number">1</span></div><div class="line">    ss.rdbuf(fio.rdbuf());</div><div class="line">    ~~~~~~~~ ^~~~~~~~~~~</div><div class="line">/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/c++/v1/sstream:<span class="number">884</span>:<span class="number">5</span>: note:</div><div class="line">      <span class="string">'rdbuf'</span> declared here</div><div class="line">    basic_stringbuf&lt;char_<span class="built_in">type</span>, traits_<span class="built_in">type</span>, allocator_<span class="built_in">type</span>&gt;* rdbuf() const;</div><div class="line">    ^</div><div class="line"><span class="number">1</span> error generated.</div></pre></td></tr></table></figure><br>因为ostringstream没有带参数的rdbuf重载。<br>“虽然std::ostringstream继承了std::basic_ios（本来应该有get/set方法），但是std::basic_ostream定义了自己的成员函数rdbuf（get only），所以覆盖了父类的(get/set)方法。”<br>这个是stackoverflow给出的答案，但我看了一下，basic_ostream的rdbuf也是从basic_ios继承的，但basic_ostringstream自己定义了rdbuf函数。<br>恩，应该是这样的。<br>我已经给那个答题的留言了[抠鼻]<br>（留言失败，要有50的reputation，我只有41个）<br><br><figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="title">ios_base</span> &lt;- basic_ios &lt;- basic_ostream &lt;- basic_ostringstream</div></pre></td></tr></table></figure>
+
+<p>至于为什么… </p>
+<p>stackoverflow上有人说是因为一般来讲，rdbuf会返回一个 <code>stringbuf*</code> ，但ostringstream的返回的是一个 <code>stringbuf</code>,但cplusplus给的都是返回一个<code>stringbuf *</code><br>所以也不知道为啥了。</p>
+<p>然后istringstream有带参数的rdbuf吗？<br>恩，也没有。</p>
+]]></content>
+        
+        <tag>rdbuf </tag>
+         
+        <tag>c++ </tag>
+         
+        <tag>io </tag>
+         
+         
+        <pubTime>2014-12-18T10:47:00.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="C++" url="http://lixipeng.me/categories/C++/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/11/25/intro-to-git/</loc>
+    <lastmod>2014-11-25T04:55:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>Git 使用简介</title>
+        <content><![CDATA[<p>知道Github已经很长时间了，虽然用的不多，也没有人follow我，但还是感觉Github是一个伟大的东西。<a id="more"></a><br>来到实验室的第二个报告是给组里的人讲一下git，因为组里想要用版本控制工具。原来组里也是用了版本控制工具的，但是是用的SVN。后来好像要尝试一下git，所以组长就让我做一下调研，给大家讲一下git，正好那段时间正在研究git，所以就好好的研究了一下。经过我耐心的讲解，组里最后决定了仍然使用SVN…%&gt;_&lt;%<br>第一次报告因为slides里没有图，而且内容我掌握的不是特别清楚，所以被导师骂了个半死，体内的pH都失调了，这次的报告就全是图，前前后后100多张，做图做的都吐了。最后讲的时候也还很顺利，讲了一个半小时还没讲完，期间实在憋不住了还去了趟厕所。<br>因为是给别人做报告，所以尽可能的研究的透彻一点，基本的原理，使用也都算说的挺清楚的，关于rebase，自己从来不敢用，所以也就没讲。</p>
+<p>Github : <a href="https://github.com/lisnb/intro_to_git.git" target="_blank" rel="external">intro to git</a></p>
+<p>最近事情比较多，没时间写别的了，挖个坟。<br>主要是今天翻邮箱突然翻出来了，看了一遍，感动的留下了热泪。</p>
+]]></content>
+        
+        <tag>git </tag>
+         
+        <tag>svn </tag>
+         
+         
+        <pubTime>2014-11-25T04:45:22.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="fullstack" url="http://lixipeng.me/categories/fullstack/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+    
+  <url>
+    <loc>http://lixipeng.me/2014/10/26/tu-toc/</loc>
+    <lastmod>2014-11-03T07:35:08.000Z</lastmod>
+    <data>
+        <display>
+        <title>tu-toc</title>
+        <content><![CDATA[<p><audio src="/audio/rtn.mp3" preload="auto" autoplay loop controls></audio></p>
+<h1 id="alpha">alpha</h1>
+<h2 id="bravo">bravo</h2>
+<h3 id="charlie">charlie</h3>
+<h3 id="delta">delta</h3>
+<h2 id="echo">echo</h2>
+<h2 id="foxtrot">foxtrot</h2>
+<h3 id="golf">golf</h3>
+<h2 id="hotel">hotel</h2>
+<h1 id="india">india</h1>
+]]></content>
+        
+         
+        <pubTime>2014-10-26T14:28:22.000Z</pubTime>
+         
+           
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/11/03/cpp-performance/</loc>
+    <lastmod>2014-11-03T07:11:01.000Z</lastmod>
+    <data>
+        <display>
+        <title>Linux下C++性能分析</title>
+        <content><![CDATA[<p>另一个坑… </p>
+]]></content>
+        
+        <tag>C++ </tag>
+         
+        <tag>Linux </tag>
+         
+        <tag>valgrind </tag>
+         
+        <tag>callgrind </tag>
+         
+        <tag>gprof2dot </tag>
+         
+         
+        <pubTime>2014-11-03T06:51:21.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="linux" url="http://lixipeng.me/categories/linux/"/>
+          
+             
+              <breadCrumb title="C++" url="http://lixipeng.me/categories/linux/C++/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/10/31/mac-file-share/</loc>
+    <lastmod>2014-11-01T13:04:24.000Z</lastmod>
+    <data>
+        <display>
+        <title>mac与windows间文件共享和账户设置</title>
+        <content><![CDATA[<h2 id="mac与windows间的文件共享设置">mac与windows间的文件共享设置</h2>
+<h3 id="创建一个共享账户">创建一个共享账户</h3>
+<p>也可以使用你平时用的账户来进行共享，但这样可能不太安全，所以可以创建一个账户，专门用来进行文件共享，步骤如下：<br><a id="more"></a></p>
+<p>首先在屏幕左上角处，点击，然后打开“系统偏好设置”：<br><img src="/img/1031/1.png" alt="系统偏好设置"><br>打开“用户和群组”，并点击左下角的🔒，输入你的密码：<br><img src="/img/1031/2.png" alt="用户和群组"><br>然后点击左下角的加号，添加一个用户，新账户的类型选择“仅限共享”：<br><img src="/img/1031/3.png" alt="添加一个用户"></p>
+<blockquote>
+<p>一定要记住密码啊擦… </p>
+</blockquote>
+<h3 id="文件共享设置">文件共享设置</h3>
+<p>然后回到系统偏好设置，进入“文件共享”选项卡，在左侧点击“文件共享”前的复选框以打开该项：<br><img src="/img/1031/4.png" alt="文件共享"><br>随后在右侧点击选项，勾选“使用SMB来共享文件和文件夹”和“使用AFP来共享文件和文件夹”，并在刚刚新建的用户前打钩，会提示输入密码，注意，是twining的密码，而不是你平时所用的账户的密码，点击完成：<br><img src="/img/1031/5.png" alt="选项"><br><img src="/img/1031/6.png" alt="输入新建账户的密码"><br>然后点击文件选项卡下方右侧“用户”下的加号，选择刚刚新建的账户：<br><img src="/img/1031/7.png" alt="添加账户"><br>如果你只是从mac上读东西，这些就够了，但如果你要把windows上的东西拷到mac上，还需要为这个账户添加写权限：<br><img src="/img/1031/8.png" alt="添加写权限"></p>
+<h3 id="windows上的操作">windows上的操作</h3>
+<p>使用<code>Winkey+R</code>,打开运行窗口，然后输入“\\你mac的IP”：<br><img src="/img/1031/9.png" alt="输入IP"><br>然后就会提示输入用户名和密码了，输入你新建的用户名和密码，就能够使用了。</p>
+<h3 id="注意">注意</h3>
+<ul>
+<li>千万不要忘记密码啊擦</li>
+<li>用完了就把文件共享关了吧… </li>
+<li>不要看什么<code>smb</code>和<code>afp</code>协议，更不要试图在chrome上输入这个链接，诶，简直浪费时间，直接当成ftp，在运行里像添加打印机一样就行了</li>
+<li><p>从windows上复制过来的东西，拥有者应该是你新建的那个账户，权限一般是600，如果是图片，看都看不了，在命令行里用以下命令修改一下就行了:</p>
+<pre><code>  <span class="built_in">sudo</span> chown <span class="string">"你的用户名"</span> <span class="string">"文件名"</span>
+</code></pre></li>
+<li><p>共享目录一般是你根目录下的Public文件夹，也可以通过共享面板下面左侧的“共享文件夹”下面的加号来自行添加</p>
+</li>
+<li>千万不要忘记密码啊擦</li>
+</ul>
+<blockquote>
+<p>一定是莫非定律在作怪…</p>
+</blockquote>
+<h2 id="下面介绍一下如果你把这个新建的账户的密码给忘了怎么办…">下面介绍一下如果你把这个新建的账户的密码给忘了怎么办…</h2>
+<h3 id="首先先把密码忘记了…">首先先把密码忘记了…</h3>
+<p>这个偶尔用一次，我通常在笔记本和台式机之间传东西，要么就用scp，要么就传到服务器上再弄下来，很少共享什么的… 一万年用一次，所以之前就随便建了个号，用完了就放在那了。<br>今天我又突然想用，突然发现密码忘了…<br>我就想，那我解除用这个账号做共享再删了吧，所以我就在文件共享那个选项里想把这个账号给解除了，但突然发现，解除的时候需要输入这个账户的密码…尼玛…<br>我就想，那我直接把这个账户给删了吧… 但我打开用户账户选项卡的时候我惊喜的发现，这个账户因为是专门用来共享的，所以没有列在里面… 尼玛… </p>
+<h3 id="删除这个账户">删除这个账户</h3>
+<p>我查了很久，终于在Apple的官方论坛上找到了<a href="https://discussions.apple.com/message/25389161" target="_blank" rel="external">答案</a>。<br>有人说，反正安全问题可以忽略，那个账户就放在那呗，又不碍事。<br>但我用那个论坛上提出问题的大哥的话来回答：</p>
+<blockquote>
+<p>这个账户在“用户账户”里找不着，只有在文件共享这才能看见，我咋能把它删了啊？主要是我现在不用它了，但它就在这，想整也整不没，搞得我好烦啊… </p>
+</blockquote>
+<p>双子座大男孩还有点小强迫症呢嗯哼~(@^_^@)~</p>
+<p>首先还是打开“用户账户”面板，解锁，然后点击登录选项，点击网“网络账户服务器”后的“加入”，然后点击“打开目录实用工具”：<br><img src="/img/1031/10.png" alt="网络账户服务器"><br>点击左下角的🔒以解锁（<strong>重要，否则无法删除</strong>），选择“目录编辑器”<br><img src="/img/1031/11.png" alt="目录实用工具"><br>在目录编辑器左侧，找到你的账户名，然后点击下面的减号，选择“删除”<br><img src="/img/1031/12.png" alt="目录编辑器"></p>
+<p>噗… </p>
+<h3 id="注意-1">注意</h3>
+<ul>
+<li>不用试图在/Users下面找到这个账户的根目录，因为这个账户就是用来文件共享的，没有创建根目录，上面的目录编辑器中你可以看到，这个账户的“NFSHomeDirectory”是“/dev/null”</li>
+<li>然后别手抖删错账户… </li>
+<li>当然最好你别把密码忘了… </li>
+</ul>
+<p>擦，这一晚上又啥都没干…</p>
+<hr>
+<p>噗… </p>
+]]></content>
+        
+        <tag>mac </tag>
+         
+        <tag>文件共享 </tag>
+         
+        <tag>共享账户 </tag>
+         
+         
+        <pubTime>2014-10-31T12:03:01.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="mac" url="http://lixipeng.me/categories/mac/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/11/01/sticky/</loc>
+    <lastmod>2014-11-01T13:01:05.000Z</lastmod>
+    <data>
+        <display>
+        <title>为Hexo添加了置顶功能</title>
+        <content><![CDATA[<p>通过修改主题，为Hexo添加了置顶功能。<br><a id="more"></a><br>是在<a href="https://github.com/A-limon/pacman" target="_blank" rel="external">Pacman</a>基础上做的修改，然后在主题的配置文件中标明要把哪一篇置顶。其实在Hexo中设置应该也可以。<br>但因为是在主题中做的置顶，所以就放在主题的配置文件中设置了。<br>可以设置一篇或者多篇，在<code>_config.yml</code>中：</p>
+<pre><code>stickes: #直接在这里写，是添加一篇
+-<span class="ruby"> foo <span class="comment">#写在这就可以添加多篇</span>
+</span>-<span class="ruby"> bar</span>
+</code></pre><p>修改后的主题现在叫做<code>Pacwoman</code></p>
+<p>Fork it on Github: <a href="https://github.com/lisnb/pacwoman" target="_blank" rel="external">Pacwoman</a>。</p>
+]]></content>
+        
+        <tag>hexo </tag>
+         
+        <tag>pacman </tag>
+         
+         
+        <pubTime>2014-11-01T12:51:24.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="hexo" url="http://lixipeng.me/categories/hexo/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/06/19/gdb-coredumped/</loc>
+    <lastmod>2014-10-31T08:18:37.000Z</lastmod>
+    <data>
+        <display>
+        <title>gdb-coredumped</title>
+        <content><![CDATA[<blockquote>
+<p>说的都没错，但听起来怪怪的</p>
+</blockquote>
+<p>今天晚上想把代码在服务器上走一下形式，编译运行一下，通过了就收拾收拾回宿舍了。<br>结果编译没有问题，运行的时候突然报了“段错误 (core dumped)”，当时就尿了，呵呵，学长学姐的“legacy”。</p>
+<a id="more"></a>
+
+<p>代码需要在windows和linux上跨平台运行，为了避免使用ftp工具（一开始一直使用psftp, 虽然命令行看起来有点炫酷但实在是太不方便了，后来找到了一个FileZilla, 挺好用的，但也挺麻烦），就开始用git。这几天还和范老师猛烈的研究git怎么用，幸好有林大神。<br>所以代码都是在Windows上写的，用Visual Studio。Visual Studio 我装了两个版本，2008 和 2013 Express。因为实验室里之前的组件都是用2008编译的，所以依赖那些的组件在2013上编译通不过，也就没法调试。但2008写代码实在是太难看了，尤其是配合上Visual Assist，简直难看，学长又拒绝使用2013重新编译原来的组件，所以机智的鹏宝会有一个build目录和一个build_2013目录，cmake两次，一次用2008的，一次用2013的，用2013的看代码写代码写注释，用2008的编译调试，诶，疲劳。<br>怎么说那去了。<br>总之发现了错误我很慌张，因为在windows上是没有问题的（诶，以后被测试的抓到可能说的最多的一句话了），所以也就没法在VS里调试，项目又很大，用gdb一点一点调试肯定会很难过。所以就去网上找，然后发现可以利用出错之后的core文件使用gdb找到出问题的地方。<br>然后就用 -DCMAKE_BUILD_TYPE=Debug 给生成的可执行文件添加了调试信息（这也解决了我之前的一个问题，我之前问范老师，为啥windows上的大家都提供一个release的lib，一个debug的lib，但linux上的只有release的呢？范老师说，linux上可能只有release吧。嘻嘻嘻嘻嘻，才不是…）<br>然后调整了core文件的大小限制，生成了core文件，最后用gdb找到了出问题的位置，卧槽这的代码我还没开始看呢… 烦死了。<br>值得庆幸的是，鹏宝机智的发现，原来是输入的文件的格式不对，程序没有问题，但其实这也算有问题，鲁棒性不强… robustness哈哈，这个单词好有意思…<br>所以问题就解决了… </p>
+<hr>
+<p>在程序运行出错时，linux会生成一个core文件，用以记录系统运行的错误，这个文件的大小不一，依据当时的环境而定，可以设置这个文件的大小上限，如果上限小于当时实际的大小，那么这个文件就不会生成。<br>可以使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ulimit -c unlimited</div></pre></td></tr></table></figure><br>取消对下一次运行时，对core文件大小的限制，也可以在系统的配置文件中修改<br>为了尝试，我们写一个小程序<br>代码如下：<br><figure class="highlight cpp"><figcaption><span>foo.cpp</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;iostream&gt;</span></div><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;vector&gt;</span></div><div class="line"><span class="comment">//using namespace std;</span></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">void</span> baz()</div><div class="line">{</div><div class="line">	<span class="stl_container"><span class="built_in">vector</span>&lt; <span class="keyword">char</span>&gt;</span> vc;</div><div class="line">	std::<span class="built_in">cout</span>&lt;&lt; vc[<span class="number">2</span>]&lt;&lt; std::endl;</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">void</span> biz()</div><div class="line">{</div><div class="line">	baz();</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">void</span> bar()</div><div class="line">{</div><div class="line">	biz();</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">void</span> foo()</div><div class="line">{</div><div class="line">	bar();</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">int</span> main()</div><div class="line">{</div><div class="line">	foo();</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">}</div></pre></td></tr></table></figure>
+
+<p>写了这么多函数是为了突出调用关系。<br>很显然，在baz()函数中，访问了不存在的vc[2]会发生错误<br>先设置core文件的大小上限，然后使用g++编译代码，运行，发现产生了段错误，coredumped，并且在该目录下生成了core文件。<br><img src="/img/0619/1.PNG" alt=""><br>随后，为了找到问题出现在哪里，使用gdb</p>
+<p><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">gdb ./foo core</div></pre></td></tr></table></figure><br>然后输入</p>
+<p><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">(gdb) where</div></pre></td></tr></table></figure><br><img src="/img/0619/2.PNG" alt=""><br>就能看到堆栈和调用关系，找到出现问题的位置了，比如在这里我们就把问题定位在baz()函数里了，但问题是，如果baz()函数很复杂，那么能不能找到更精准的定位呢？<br>我们需要在编译的时候使用-g选项为生成的可执行文件添加调试信息：</p>
+<p><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">g++ foo.cpp -o foo -g</div></pre></td></tr></table></figure><br>然后再按照上面的流程，就会发现，问题出现在baz()函数的第10行<br><img src="/img/0619/3.PNG" alt=""></p>
+]]></content>
+        
+        <tag>linux </tag>
+         
+        <tag>gdb </tag>
+         
+        <tag>C++ </tag>
+         
+        <tag>coredumped </tag>
+         
+         
+        <pubTime>2014-06-19T15:33:40.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="linux" url="http://lixipeng.me/categories/linux/"/>
+          
+             
+              <breadCrumb title="C++" url="http://lixipeng.me/categories/linux/C++/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/10/30/malaoluo/</loc>
+    <lastmod>2014-10-30T13:58:30.000Z</lastmod>
+    <data>
+        <display>
+        <title>你要成功，这很重要</title>
+        <content><![CDATA[<p>Smartisan T1 降价以来，看到无数人都在骂老罗，我就很奇怪，手机降价了为什么还要被骂<a id="more"></a>。思来想去，感觉只有一种情况让我觉得尚且在情理之中：那些之前买了手机的人，觉得被坑了，所以破口大骂，就像那些高价买了房子的业主，面对着跳水的房价，内心的愤怒并非来源于自己花了冤枉钱，而是来自于别人可能不用花冤枉钱。不过看来看去，却始终没有找到这种人。说脏话的始终都是那些贵了也不买，便宜了也不买的人。<br>我始终想说他们傻逼，因为他们除了“乔布斯重新定义了手机，罗永浩重新定义了傻逼”“我要是买你手机我就是个锤子（这句听起来还挺厚道的，至少和‘谁买了谁就是个锤子’比起来）”，看的有点反胃恶心了。<br>我就想起老罗那句话：</p>
+<blockquote>
+<p>别人一骂我，我就很局促，因为骂的不对，不在点上；别人一夸我，我就很扭捏，因为夸的还不够</p>
+</blockquote>
+<p>当然这个好像是萧伯纳说的。</p>
+<hr>
+<p>我觉得没什么可骂的。<br>我记得去年过年的时候在家里跟家里人聊天，谈到了保险的事情，我大姐说听说保险其实还挺黑的，你看他收了你那么多钱，但他们业务员会分走一大半（这点不做考证）。<br>然后我说事情不能这么看，你不需要考虑你买的东西的成本，也不需要考虑你付的钱到底怎么分配，因为你在付钱的时候，你是认可了和你付出的代价等价的所接受的服务的价值的。<br>购买行为到底是不是等价交换呢，如果这个“价”是“价值”的话，可能马克思觉得是，但我觉得不是，如果是价值的话，那就是凝结在商品中无差别的人类劳动的总和，决定价值量的是社会必要的劳动时间，是定下来的。可能也就意味着，一袋大米只应该兑换一桶食用油。那如果我喜欢的话，我可以花高价去购买商品，只要我认可就行了啊。所以我刚刚还找我三舅确定了一下，我们俩基本认为这个等价交换并不是事实上的等价交换，而是你认为是等价交换就好了。<br>但有一点很重要，就是这个过程中并没有欺诈行为产生，这个应该很好理解。<br>总结起来就是，如果当时对方对你在信息完备的情况下做了承诺，你在接受了各种信息的基础上做出了购买行为，而后对方对你的承诺一一兑现，那这个消费过程就是很健康的。<br>在Smartisan T1这件事情里，老罗并没有欺诈行为，他说是JDI屏，就是JDI的屏，说是骁龙量产的最快的CPU，就是量产最快的CPU，真材实料，属于兑现了承诺；除此之外，老罗并没有承诺该手机一年或者某个时间段内不会降价，所以现在降价也不是背信弃义，再说，怎么可能不降价（时间确实短了一点，但这个和他们公司的战略有关），当然，老罗更没有承诺我降价不会一下降1000块。所以感觉没有什么好骂的。<br>要说伤心呢，可能还是有一点点伤心的，毕竟在大家都骂老罗的时候，这些人站出来，真金白银的支持老罗，现在被“摆了一道”，可能感觉有些想不通。<br>但话说回来，相信买了手机的大部分还是了解老罗的为人，但凡老罗语录听过几遍的人，应该不难理解一个问题，那就是这个过程实际上不涉及到谁欠谁的，就像有人说老罗要对新东方感恩，老罗的意思是为什么呢，我讲课，我拿工资，谁也不欠谁的，我为什么要感恩？<br>老罗做的不是公益事业，你花钱买手机，我也没骗你，事实上我也不欠你。我不是基金会，你的钱不是白白给我的，你是买手机的。<br>虽然这么看有点绝情，但我想理性一点的还是能想通的。如果是我，至少现在我想象一下自己17号买了手机，然后18号降价一千，我可能会很生气，可能也会自己骂，但绝对不会让别人知道。（我这是谦虚<br>你要是嫌贵就别买得了，我当时看了手机给出的结论也是：不贵，但性价比不高<br>难道买个手机主要目的是为了人家感恩戴德么</p>
+<hr>
+<p>另外有人拿出老罗当初发的“2500”的微博说事，要是开个玩笑就算了，当真了就是秀下限了。那是发布价行吗？真是不懂那些刷孙子爷爷的人到底是真傻逼还是装傻逼。至于情怀，那不是别人塞给你的，是你由内而外生发的，需要谁来负责么。不想说了，感觉犯愁，看不到希望。</p>
+<p>我作为一个没有买这个手机的人，无论怎么在这说，都没有什么说服力，不过幸运的事我并不想说服谁。</p>
+<p>还是那句话，我只觉得自己所生活的并非人间。</p>
+<p>老罗加油。</p>
+<p>当然也可能事实上你真的变了（虽然我不信吧），但即使这样，也没关系，我是给我知道的那个老罗加油，也是给那个说：</p>
+<blockquote>
+<p>通过干干净净赚钱，让人相信干干净净的赚钱是可能的；<br>通过实现理想，让人相信实现理想是可能的；<br>通过改变世界，让人相信改变世界时可能的。<br><strong>尤其是在中国</strong></p>
+</blockquote>
+<p>加油。</p>
+<p><img src="/img/1030/laoluo1.png" alt="可能吧"><br><img src="/img/1030/laoluo2.png" alt="真是可爱(*^__^*) ……"></p>
+<p>那个网友说的挺对的，如果你成功了，那就证明着一种价值观的成功，这很重要。水杯在手里徐徐跳动。</p>
+]]></content>
+        
+        <tag>老罗 </tag>
+         
+        <tag>罗永浩 </tag>
+         
+        <tag>smartisan </tag>
+         
+        <tag>T1 </tag>
+         
+         
+        <pubTime>2014-10-30T12:33:30.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/09/20/chrome-extension-noweibo/</loc>
+    <lastmod>2014-10-24T10:36:46.000Z</lastmod>
+    <data>
+        <display>
+        <title>(chrome extension) noweibo</title>
+        <content><![CDATA[<blockquote>
+<p>夏日一阵雷雨后，看到美丽的彩虹。当你偶然回想昨天，四季悄然在流转。<br>你曾有不平凡的心，也曾有很多的渴望。当你仰望头顶蓝天，才发现，一切很平常。<br>— 许巍 《每一刻都是崭新的》   (<em>^__^</em>) ……</p>
+</blockquote>
+<a id="more"></a>
+
+
+<p>白天在实验室的时候，我每次回头，都能发现某同学在刷微博，这是如此的明显以至于我总是为她捏一把汗，万一被老师发现了怎么办，毕竟该大姐一条命令搞得全组上下不得安宁，怎么还能这么堂而皇之的干这种事情。<br>我并不是一个酷爱偷窥别人屏幕的绅士，但尽管如此，我还是能在第一眼看到屏幕的时候，分辨出她刷的是微博，而不是在标数据，原因就在于微博的页面设计的很有特色，权重最大的一个feature就是这个：</p>
+<p><img src="/img/0920/weibonav.png" alt="weibo nav"></p>
+<p>这个默认主题的导航栏特别显眼，类似的还有人人网的导航栏。这种始终停在窗口最上方的导航栏曾经让我如此的痴迷，以至于当我发现Bootstrap这种神器之后，不停的用这个。</p>
+<p>除此之外，<br>还有发微博的那个部分：</p>
+<p><img src="/img/0920/weibopublish.png" alt="weibo publisher"></p>
+<p>还有微博右侧显示头像还有广告的那一栏：</p>
+<p><img src="/img/0920/weiboright.png" alt="weibo right box"></p>
+<p>还有微博的即时通讯的那个部分。不上图了，实在是太费劲了，截出来的图太大了都，然后markdown还不能设置图片大小，搞得得往这里插HTML代码，否则我害得用Photoshop改，主要是我这个photoshop还是破解版，太烦了。<br><img src="/img/0920/weibo1.png" alt="weibo"><br>所以如果把这些比较明显的部分去掉，只留下微博的部分，可能就没有那么显眼了。比如这样：<br><img src="/img/0920/weibo2.png" alt="weibo"></p>
+<p>是不是就性感一点了。</p>
+<p>所以你有没有注意到地址栏里有一个小眼睛，(<em>^__^</em>) ……</p>
+<p>实现起来肥肠简单啊，就是把那几个div隐藏起来就行了，连jquery都不用。其实我白天在实验室也不刷微博的，这个所谓的插件也是一个附属品，昨天晚上本来要去打羽毛球的，但结果吃完饭的时候跟学长闹了点不愉快，所以就没去，索性就待在实验室里了。10点左右的时候吧，老师去打羽毛球回来，看到我还问我，还没回去啊~ 加油啊~ 搞得人家心里暖暖的笑。<br>这一周还写好了那个标注的插件，为此研究了好久chrome插件的开发文档，最近这个Google被封的实在是有些严重，所以只能看360翻译的文档，感觉很屈辱，很羞耻，都快哭了。</p>
+<p><img src="/img/0920/noweibo.png" alt="noweibo v1.0"><br><a href="https://github.com/lisnb/noweibo" target="_blank" rel="external">Github noweibo</a></p>
+]]></content>
+        
+        <tag>chrome extension </tag>
+         
+        <tag>javascript </tag>
+         
+         
+        <pubTime>2014-09-20T12:34:48.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="fullstack" url="http://lixipeng.me/categories/fullstack/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/07/20/first-missing-positive/</loc>
+    <lastmod>2014-10-24T10:31:14.000Z</lastmod>
+    <data>
+        <display>
+        <title>(leetcode) first missing positive</title>
+        <content><![CDATA[<blockquote>
+<p>Given an unsorted integer array, find the first missing positive integer.<br>For example,<br>Given <code>[1,2,0]</code> return <code>3</code>,<br>and <code>[3,4,-1,1]</code> return <code>2</code>.<br>Your algorithm should run in O(n)time and uses constant space.</p>
+<p>给你一个没有乱序的数组，找到这个数组中，不存在的最小的整数。<br>比如 <code>[1,2,0]</code> 中，因为是从0开始，而且连续，所以最小的不存在于这个数组中的数是3；<br><code>[3,4,-1,1]</code>中，最小的不在这个数组中的数是2。<br>时间复杂度为O(<l>n</l>)，空间的“constant space”没懂什么意思… </p>
+</blockquote>
+<hr>
+<p>如果是排序的，那从前面开始数，找到就好了。但是给的数组是乱序的，排个序怎么着也得O(nlogn),时间就超了。<br>但总感觉最小值不是直接找出来的，而是从1开始，一个一个试出来的。<br>所以就按照这个思路，用非常脏的“算法”写的。</p>
+<figure class="highlight python"><figcaption><span>firstmissingpositive.py</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/env python</span></div><div class="line"><span class="comment"># -*- coding: utf-8 -*-</span></div><div class="line"><span class="comment"># @Author: LiSnB</span></div><div class="line"><span class="comment"># @Date:   2014-07-19 23:17:10</span></div><div class="line"><span class="comment"># @Last Modified by:   LiSnB</span></div><div class="line"><span class="comment"># @Last Modified time: 2014-07-20 22:39:49</span></div><div class="line"><span class="comment"># @Email: lisnb.h@gmail.com</span></div><div class="line"></div><div class="line"><span class="string">"""</span></div><div class="line"># @comment here:</div><div class="line"></div><div class="line">Given [1,2,0] return 3,</div><div class="line">and [3,4,-1,1] return 2.</div><div class="line">and [7,3,4,9,0,1,2] return 5.</div><div class="line"></div><div class="line">"""</div><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">Solution</span>:</span></div><div class="line">    <span class="comment"># @param A, a list of integers</span></div><div class="line">    <span class="comment"># @return an integer</span></div><div class="line">    </div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">firstMissingPositive</span><span class="params">(self, A)</span>:</span></div><div class="line">        <span class="keyword">if</span> len(A) <span class="keyword">is</span> <span class="number">0</span>:</div><div class="line">            <span class="keyword">return</span> <span class="number">1</span></div><div class="line">        ma = max(A)</div><div class="line">        <span class="keyword">if</span> ma &lt;=<span class="number">0</span>:</div><div class="line">            <span class="keyword">return</span> <span class="number">1</span></div><div class="line">        m=dict.fromkeys(A)</div><div class="line">        mi=<span class="number">1</span></div><div class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1</span>,ma):</div><div class="line">            <span class="keyword">if</span> m.get(i,<span class="number">0</span>) <span class="keyword">is</span> <span class="number">0</span>:</div><div class="line">                <span class="keyword">return</span> i</div><div class="line">        <span class="keyword">return</span> ma+<span class="number">1</span></div><div class="line">        </div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    s= Solution()</div><div class="line">    <span class="keyword">print</span> s.firstMissingPositive([<span class="number">7</span>,<span class="number">8</span>,<span class="number">9</span>,<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>,<span class="number">4</span>,<span class="number">5</span>,<span class="number">6</span>])</div><div class="line"></div><div class="line"><span class="comment"># ~$  10</span></div></pre></td></tr></table></figure>
+
+<p>从1开始，逐步增加，第一个不出现在给定数组中的就是要求的值，但如果每次都要遍历判断是否在数组中，那就是O(n^2)的了<br>所以就把… 数组弄到字典里了…<br>这样每次判断就只有O(1)… </p>
+<p>第<code>50,51</code>行用来搞定给定数组是空的情况<br>第<code>52-54</code>行用来获得数组最大值，确定递增的边界，并且如果整个数组都是负值（也就是最大值是负值），那就返回<code>1</code></p>
+<p>如果直到数组最大值所有的数都在数组中，那就类似给的第一个例子那样，应该返回<code>最大值+1</code><br>注释比代码都多… <em>(:з」∠)</em></p>
+<blockquote>
+<p>这不是解题报告，这是心路历程…<br>甜言蜜语就那么好听？不懂。</p>
+</blockquote>
+]]></content>
+        
+        <tag>leetcode </tag>
+         
+        <tag>python </tag>
+         
+         
+        <pubTime>2014-07-20T14:52:58.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="leetcode" url="http://lixipeng.me/categories/leetcode/"/>
+          
+             
+              <breadCrumb title="python" url="http://lixipeng.me/categories/leetcode/python/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/10/14/yigedakeng-freebase/</loc>
+    <lastmod>2014-10-14T06:15:13.000Z</lastmod>
+    <data>
+        <display>
+        <title>瞅了瞅，还是跳了下去</title>
+        <content><![CDATA[<blockquote>
+<p>享受生活总是来的比想的困难的多，因为享受当下和享受将来看起来总是有不可平息的冲突。然而奇怪的是，享受当下总是显得那么合情，而享受将来却是显得那么合理。所以进化的越发感性的人容易显得… 嗯… 懒惰？所以… 鹏宝加油？<br><a id="more"></a></p>
+</blockquote>
+<p>今天范老师意味深长的对我说感觉我们都太松了，言语中有些不好意思，像是觉得不知道是不是该说的话。<br>像范老师这种脾气好，人也不错的人已经不多了。<br>实际上自己也感觉到了。这都十月中旬了，马上研二都要结束了，按照他们这个节奏，还有半年就要开始找工作了，书也没开始看，题也没开始刷，应该动起来了。</p>
+<p>我要开动啦！</p>
+<p>实验室的事情感觉好烦啊，那么乱，说是简单的维护，其实感觉事情也超级多，那么多组件，今天你有问题，明天你有问题，根本没有成块的时间好好研究点什么。虽说自己也认可被当成专硕培养，但一直做这种所谓的“工程”也并不是我想要的。<br>非常想自己干点什么事情，找工作的时候也好能拿得出手，要不算法也不好，工程也没做好，怎么办… </p>
+<p>哈哈突然就想起昨天在B站上看fate，有人发弹幕说：男主前两集死了两次你怕不怕，我就问你怕不怕！ 好好笑… </p>
+<p>这个学期开始的时候就想了，现在终于把这个<a href="http://freebase.lixipeng.me" target="_blank" rel="external">坑</a>给挖了，希望能坚持下去啦…（怎么听着这么像“打平就能出线… ”）</p>
+<p>《C++ Primer》要开始看啦… 《算法导论》要开始看了… Leetcode要刷起了… 哭丧脸… 加油鹏宝！</p>
+]]></content>
+        
+        <tag>freebase </tag>
+         
+         
+        <pubTime>2014-10-14T06:02:28.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/09/27/xiangnian/</loc>
+    <lastmod>2014-09-27T04:47:02.000Z</lastmod>
+    <data>
+        <display>
+        <title>享年</title>
+        <content><![CDATA[<p>今天坐火车回家，路过唐山，突然想起来本科时候给我们上毛概课的杨凤永老师，记得他说过他是唐山人。<br>于是就和当时一起选他的课的同学叙旧，刚说了没几句，同学说，他不是已经过世了么？<a id="more"></a><br>我就有点蒙了，以为他开玩笑呢。然后他说是吴克峰老师微博上发过。所以我就去吴克峰老师的微博上去找，最后真的找到了，是今年的二月份，按兄弟所说，享年54岁。</p>
+<hr>
+<p>我一直觉得杨老师是一个很好的老师，不仅仅是今天，平时也会时不时的想起来。我记得还是郭仁朋学长推荐的毛概老师，最后上的也很开心。唯一有点小遗憾的是，最后毛概只有80分，不过强哥小柳她们也都有90多，我记得我答的特别好，唯一不足的是我应该是在试卷上把老师的名字写错了。因为我一直记不清到底是杨风永，还是杨凤永，杨老师第一次上课的时候肯定是在黑板上写了自己名字的，但这个就像单词，我永远都记不清immediately的t后面有没有e，只要一次没记牢，就没有别的机会了。毕竟是男老师，潜意识里觉得不是凤吧。<br>所以我觉得之所以分那么低，是因为我把老师的名字写错了。但到底原因是什么，到现在也不知道，而且看这种情况，可能永远不会知道原因了。哦，我记得放暑假？的时候，我查了分，因为觉得低，还给杨老师发了一条短信，大意就是老师你好你看我上课这么这么认真书上的内容背的那么那么熟练最后的卷子上写的怎么怎么清楚，为啥只有80分捏？但最后老师也没有回，老师到底有没有看到短信，好像也永远都不会知道了。</p>
+<hr>
+<p>在本科里，印象很深的老师一只手是可以数的出来的。<br>首先是耿薇老师，在我印象中，燕姐好像都没有数落过我们，但我记得有一天早晨上高代课，好像因为有同学来的比较晚，然后耿薇老师就把我们骂了一顿，我就是在那个时候发现自己是个抖M的… 毕竟高中的时候老师骂人还是比较日常的，到大学之后突然一下子没人管了，也挺失落的，所以感觉这个老师真好。还有就是耿薇老师讲的真的很好，虽然我都没太听懂吧… 也不用投影仪，就一直板书，感觉很亲切，而且讲的很明白，不像其他老师，自己的PPT都不知道说的啥，天哪，太恶心了；<br>然后是艾老。诶… 咋说呢… 不想说了… 据说他的课被停了？反正无论是因为什么原因，以后要是谁再否认社会在进步，我就分分钟打他脸；<br>还有一个林晨老师。也还好吧，听了一学期的大学语文课，虽然当时他说的一些东西，到现在玩味起来，也不觉得都是对的，印象中最深的是他说天津没有女孩，因为天津方言的问题，然后学天津话，又学了苏州话？，大家也是很开心。但我之所以对这一段印象比较深刻，是因为大三没课的时候，我去蹭了一节林晨老师给文学院？上得一节专业课，他又表演了一次。我是对梗有洁癖的人，这让我觉得很尴尬。所以我就不明白了，当时作为一个艾粉，我尼玛竟然为了占位子，把第一节军事理论课听了两遍… 感觉好大的污点，自己不是一个干净的人了。然后林晨老师说他信佛，但他又是党员，怎么说呢，有点别扭。我是一个；<br>还有一个吴克峰老师。近代史没有选到，但是大三没课的时候去蹭了几节，这也是唯一和兄弟之间的接触了。印象比较深的就是吴克峰老师经常一字一顿地说：“是不是这样，就是这个样子”。<br>最后就是杨凤永老师，他和吴克峰老师给我的感觉都是正直而真实。那一学期就最后给划范围的时候他才翻开书，其他的时候都是他在讲他的事情。听得真实津津有味，感觉是一个非常有经历的人，好像上山下乡过，然后在监狱工作过，贩卖过草莓？和鱼，等等等等。讲唐山地震时候的事情，讲他没有入党的事情等等等等。虽然细节都记不清了，但现在想起一些轮廓，还是能噌的一下记起他在讲台上抽烟的样子，眼圈里有一些晶莹的小东西，这种对自己并不在乎的规则大肆亵渎的男人，简直是太性感了。他好像还喝酒，就是在他身上好像能看到梁纯的一些东西，都很真实。这种真实让你觉得这才是一个老师的样子。比起其他老师道貌岸然，冠冕堂皇，让你不由得就爱上他。某些老师我就不说了，你再和学生打成一片，也别竖中指啊，弄得我都很尴尬你知道吗？<br>再其他的老师我就不说了，自己上课不备课，你上课怎么能不备课呢？你是老师你知道吗？</p>
+<hr>
+<p>对杨老师具体的事情都记不清了，真的就只剩下一个轮廓，这个轮廓是也是当时留下来的，所以会时不时的想起来，但想起来的还就只是这个轮廓，记得他是一个好老师，但为什么好来着？不记得了诶。<br>记得他是一个很有经历的人，才五十几岁，可能就是因为平时烟抽得太多了，酒也喝的太多了，一直过着他想要的生活。<br>所以谁过世了都说享年多少多少，但有多少人是真的在活着的时候在享受生活呢</p>
+]]></content>
+        
+        <tag>南开大学 </tag>
+         
+         
+        <pubTime>2014-09-27T04:00:45.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/05/30/python-permutation/</loc>
+    <lastmod>2014-09-20T12:47:30.000Z</lastmod>
+    <data>
+        <display>
+        <title>python permutation</title>
+        <content><![CDATA[<blockquote>
+<p>全排列算法一直以来都是我的一个伤痛</p>
+</blockquote>
+<a id="more"></a>
+
+<p>当然这简单到不能叫做一个算法，同时类似的伤痛还有非常之多<br>但就是不能跨过去，把我弄的也很头痛</p>
+<p><figure class="highlight python"><figcaption><span>permutation</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">permutation</span><span class="params">(l,i=<span class="number">0</span>)</span>:</span></div><div class="line">    <span class="keyword">if</span> i == len(l)-<span class="number">1</span>:</div><div class="line">        <span class="keyword">print</span> l</div><div class="line">    <span class="keyword">else</span>:</div><div class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(i,len(l)):</div><div class="line">            l[i],l[j]=l[j],l[i]</div><div class="line">            permute(l, i+<span class="number">1</span>)</div><div class="line">            l[i],l[j]=l[j],l[i]</div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    permutation([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])</div></pre></td></tr></table></figure><br>这也是我这样一个菜逼选择python的一个重要的原因，因为</p>
+<p><figure class="highlight python"><figcaption><span>itertools.permutation</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> itertools</div><div class="line">itertools.permutations([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])</div></pre></td></tr></table></figure><br>应该是一个生成器。</p>
+]]></content>
+        
+        <tag>python </tag>
+         
+        <tag>全排列 </tag>
+         
+        <tag>permutation </tag>
+         
+         
+        <pubTime>2014-05-30T03:24:24.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="python" url="http://lixipeng.me/categories/python/"/>
+          
+             
+              <breadCrumb title="国哥" url="http://lixipeng.me/categories/python/%E5%9B%BD%E5%93%A5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/08/31/xiaoqiujunan/</loc>
+    <lastmod>2014-08-30T16:47:34.000Z</lastmod>
+    <data>
+        <display>
+        <title>倒也谈不上天理难容</title>
+        <content><![CDATA[<blockquote>
+<p>和我无能的前半生的大部分时候一样，我拿这些西装革履的流氓完全没有办法，我不能抑制地又说了脏话，“我操，你们他蚂的怎么这么流氓?”<br>— 罗永浩 《秋菊男的故事》</p>
+</blockquote>
+<a id="more"></a>
+
+<p>今天早晨起来没吃饭，去Smartisan T1的线下体验，回来之后去联通那换了个套餐，排队排了一个半小时，到学校的时候已经一点多了，就去超市买点东西吃。<br>结账的时候我就突然想起来之前在宿舍的时候跟同学说，这几天的小浣熊里又有“再来一包”的卡片了，他跟我说，不要攒好多然后一下子去兑换，他可能不给兑，基于以往的经历和当前市场现状，我表示赞同。<br>所以结完账了我顺嘴问了一句，我说，小浣熊里有“再来一包”的卡片，这里能给兑换吗？实际上这个问题本身就已经很愚蠢了，为什么不给呢？但还是那句话，基于以往的经历和当前市场现状，倒也显得理所当然。<br>我在这里描述的时候不太想称呼那个售货员为阿姨，所以叫她老娘们儿。<br>老娘们儿说：有的给兑，有的不给兑。<br>我就很疑惑，又问：什么叫“有的给兑，有的不给兑”？<br>老娘们儿说：那卡片都不一样，有的是能在这兑的，有的是要到网上兑的。<br>我觉得说的也很有道理，但基本等于没说，我学历不高，但书还是读过一点儿的，卡片上要是说要到网上兑换，我会傻了吧唧的拿着卡片到你这来吗？<br>然后我就说：那也就是说，那种再来一包的，写着到零售商那兑换的，你这就能兑，是吗？<br>老娘们儿终于抛出我最讨厌的那句话：不行，得是在我们这买的，才能兑。<br>我一直觉得这种说法神经病，加上没吃饭，我一饿就着急，脾气就不好。诚恳的说，最近听老罗语录什么的比较多，加上昨天前天看了两遍他和王自如对峙的视频，所以顿时我的感情就上来了。<br>我说：那你怎么确定是在你这买的呢（或者：那我得怎么证明我这个小浣熊是在你这买的呢，记不太清了）？<br>老娘们儿显然恍恍惚惚，闪烁其词：在我这买小浣熊，我们一般都是给开小票的。<br>我一听就不爽了，因为我酷爱吃小浣熊，尤其是烤肉味，基本每天一包，我在她这买小浣熊买了四五次了，每次都四五包，但从来没有人跟我提过小票的事情，你这个“一般”是什么意思呢？没开就是没开，什么叫“一般”给开呢？没给我开啊也。况且我也没有拿着一沓子卡片扔你柜台上让你给我兑换，你这样是干啥呢？<br>然后我就说啊：那不是吧，我在这买了四五次，每次四五包，但从来没给我开过小票，也没跟我提过开小票的事情，你这个一般是什么意思呢？<br>老娘们儿仍然固执的说：我们一般都是给小票的，尤其是小浣熊这种，可以兑奖的，我们都是给开小票的。<br>然后我就又问：可是我确实是买了四五次，每次四五包，你没给我开小票啊？<br>老娘们儿直接转移话题：你们拿来，我就给你们兑，你都不知道，不光是小浣熊，之前…<br>我已经很生气了，就说：你跟我说这个干嘛啊？<br>老娘们儿显得很权威：我给你解释，你就听。要是拿来我就给你们兑…<br>我就打断她：那你跟我解释这个我不关心，你先解释，你说一般给开小票，但我买了好几次，但没有人给我开小票，这是怎么回事？<br>老娘们儿脸一沉：那你拿来，我能兑就给你兑了呗。<br>我当时已经觉得没有办法跟她继续对话下去了，瞪了她一眼，说了一句：真是的。<br>就走掉了。</p>
+<hr>
+<p>真的，你每天在各种场合都能遇到这种老娘们儿，把你搞得非常痛苦。交个话费，那业务员脸上那个不高兴，简直不爱理你的那个样子，我他妈是给你送钱的，我是管你要钱的啊？就算我管你要钱，你说不给不就得了吗？充个洗衣卡，不能充，只能交四十，我说是说这个卡是一次性的，不能充，没了再重新办吗？恩，四十。四十你个蛋啊，最后听别人说了才弄清楚，是每次充值要充四十而已，这玩意表达起来那么难吗？四十，四十的，我去充钱洗衣服，我让你给我洗衣服了是怎么的，那个样子让你问都不敢多问，真他妈神经病。<br>整天都是这些傻老娘们儿，弄得你忐忐忑忑，胆战心惊的跟她们打交道，非常痛苦。</p>
+<hr>
+<p>我决定以后跟她们对抗到底！</p>
+]]></content>
+        
+        <tag>小浣熊 </tag>
+         
+        <tag>傻老娘们儿 </tag>
+         
+         
+        <pubTime>2014-08-30T16:42:36.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/08/24/%E6%9C%88%E4%BA%AE%E8%87%AA%E5%B7%B1%E4%B8%8D%E5%8F%91%E5%85%89/</loc>
+    <lastmod>2014-08-24T07:28:31.000Z</lastmod>
+    <data>
+        <display>
+        <title>月亮自己不发光</title>
+        <content><![CDATA[<blockquote>
+<p>… 除了冬天最冷的那几个月，我都喜欢在这个客厅里待着，因为客厅里有一套布沙发。作为一个土炕上长大的孩子，我在很长一段时间里都觉得躺在松软的沙发上看书是非常奢侈和惬意的事情。<br><a id="more"></a><br>因为怕弄脏沙发无法拆洗的布面，母亲永远用一个做工繁复笨拙、看起来异常丑陋的沙发套包着它。我提醒她如果一直这样用下去，那我们到了要扔掉这个沙发的时候，会发现我们没有以它原来漂亮的样子用过哪怕是一天，这显然是很不划算的。但我的提醒并没有改变什么，好像那个时代每个家庭最终扔掉的沙发的布面，都是光亮如新的。经历了工业落后、物资严重匮乏的年代，人们或多或少都会有点这样的强迫症，就像经历过饥荒的人们宁可把吃不下的食物倒进胃里一样。后来家里开始有了进口电器的时候，他们又开始用各种塑料薄膜去折磨家电遥控器去了<br>— 罗永浩 《我的奋斗》</p>
+</blockquote>
+<p>我妈酷爱给我讲她小时候的事情<br>我的小米手机是大四那年买的，这是我的第二部智能机（第一部也是这个时候买的，三星的那个S3, 后来转售给我大姐了笑），面对着这么大的屏幕当时我也是醉了，手机到货之前我已经在淘宝上买了两个保护壳，每个保护壳还送了一张贴膜，我在买手机的时候在官网上还买了两张，因为我要爱它。等手机到了的那天，我记得还是在实验室，我连手机还没开机，就开始贴膜。但贴膜显然不是我的祖传手艺，总是在最后的时候发现贴歪了，所以就贴了又撕，撕了又贴，直到第四张，也就是最后一张的时候，才勉强没有大的空气泡了，因为老子实在是没有退路了。所以以后每一次看《蝙蝠侠·黑暗骑士崛起？》的时候，看到贝尔从那个地下的监狱爬出来，最后只有放弃使用绳子腾空一跃才重见天日，我都心有戚戚然。<br>等我回家的时候我妈看着我的手机，看看我，说：别用这个壳跟膜了呗</p>
+<hr>
+<p>我妈酷爱给我讲她小时候的事情<br>她在1951年出生，现在已经六十多岁了，只上过四年的学，是我家里学历倒数第二高的——最低的是我爸，一年。<br>但我妈看了很多很多很多书，小的时候教我背诗，酷爱毛主席… 及其诗词。也是我现在一回家就跟她冲突不断的主要诱因⊙﹏⊙b 我很敬重我妈的，我妈知道万人空巷是什么意思<br>她小的时候家里比较穷，因为算上她有六个孩子。但其实现在来看，那个时候好像再富也富不到哪去…<br>她是家里最小的，所以衣服什么的都是捡我大姨和二姨的穿，我妈每次说到这的时候总是用那种很难形容的感情说：“穿的破破烂烂的，我就可不愿意去学校了”。<br>她说有一年，我姥姥给她做了一件新的衣服和一双新的棉鞋，那双棉鞋好像是有花的，就是她觉得很好看，她就非常开心，她说她在学校也不怎么跟老师打招呼，那天她穿着那件新衣服去上学，因为非常兴奋，见到老师之后就非常浮夸个敬了个少先队礼然后和老师说老师好，她说老师都没认出来是她。后来到了冬天要穿棉鞋了的时候，我姥姥就非常神奇的用一双特别破的棉鞋的鞋面把那双小花棉鞋给包住了，我妈就可不愿意了，她就央求我姥姥不要这样，但估计我姥姥就想着怕万一把那双小花鞋穿坏了怎么办，还是把那双小花棉鞋给包住了。我能感觉到我妈可心疼了，一直到现在可能也没办法释怀，想不通。<br>她说后来直到我妈长大了一些，穿不进去了，那双小花棉鞋外面仍然是那个丑陋的鞋面。因为她是家里最小的，她穿不了了，也没有别人能穿了，就准备送人，送人的时候就把那层破鞋面给拆了，送给我妈的三婶什么的了，我不记得到底是谁了，反正就差不多少。然后那个人就赞美我姥姥，说她会过日子。我妈说她妈当时很高兴。我想，可能在那个时候，作为一个家庭妇女，得到别人会过日子这种关于家庭妇女本分的赞美，要比让自己女儿开心更能让她有满足感。</p>
+<hr>
+<p>我妈说完让我别用那个保护壳之后，那种眼神和表情，就像又看到她那双小花棉鞋了一样。<br>后来我就把壳扔了，膜也撕了，那一瞬间，天，真是肥肠清澈，让你不再有任何想要再贴一层膜的冲动，高透的也不行<br>现在我也不准备把我的任何设备贴膜加壳，一方面是有这个情节，另一方面正如老罗所说，手机的结构设计师绞尽脑汁，把手机弄薄了几毫米，工业设计师绞尽脑汁把手机弄的那么漂亮，你一个丑陋的壳子一装，啥都完了；大猩猩绞尽脑汁把屏幕的透光率提高了几个百分点，你一张膜一贴，啥都完了。<br>是对人家的不尊重。<br>况且，你膜再像它说的那么坚硬，也不可能有玻璃坚硬，钥匙什么的没法刮伤屏幕，但刮刮保护膜还是很轻松的，用了一段时间，那个膜上全是划痕，你就这么用着这个手机到它报废，剩了一块洁净如新的屏幕，有用？<br>现在我的手机屏幕上确实是有划痕，不过只是很小的几处，当然后盖已经完蛋了… 但本来那个小米的后盖已经非常难看了，不减分</p>
+<hr>
+<p><img src="/img/0824/1.png" alt="@罗永浩"><br>我对浪费有自己的看法。<br>食堂里到处都是节约粮食的海报，我总是看看就得了。<br>我吃饭时的习惯是这样的，我会剩菜，但一般不剩饭，不是一般，基本不剩饭，菜也不是无差别的剩，我会把喜欢吃的吃光，通常来说剩下的最多的就是青椒，天呐，这玩意真的有人爱吃吗？不是因为体积大才和所有成本高的东西炒在一起的吗？而且本来翠绿的颜色很喜人，但通常食堂的大锅饭，你去的时候可能这个菜已经做了好久，所以本来应该是#15772c的青椒，被活活捂成了#5d772b</p>
+<p><img src="/img/0824/2.png" alt="@ipalette"></p>
+<p>蒜薹同理。<br>我觉得吃饭才是正经的事情，菜只是辅助，我不会因为只吃一份菜中的一部分不够吃而打两份菜，如果一份菜里我都爱吃，那就都吃掉，如果只有一半，那我就用这一半的菜吃掉我的饭。<br>我觉得饭菜作为商品，它的意义就是被购买，当你刷完卡那一刹那，它就是你的了，它的意义就实现了。至于你吃不吃，那是你自己的事，别人管不着。<br>当然如果你故意买了很多，然后倒掉，那我也不会觉得你这种做法不对，我只是觉得你人傻逼，对人不对事。<br>买饭的时候鬼知道这个菜好不好吃，我今天能吃多少饭，打的多了一点，那剩了就剩了，何苦逼自己往里塞呢，别人还得等着你，菜不好吃，就不吃了，我也不会再去打一个别的，何苦逼自己吃呢。<br>有时候我就是想吃一个菜里的一部分，那我明知道这个，我还要买，证明我认可用一份的钱吃半份，我觉得公平就好了。<br>我之前就是有跟老罗类似的想法，我觉得所有人告诉你节约粮食，说世界上有很多人还没有吃饱饭，我真的觉得我在这再怎么节约，他们该挨饿，还是挨饿，因为这些粮食就是弄到这里的，它们的价值就是被购买，被买走了，就完事了。举个例子，全北京所有人抽风一个月，大家都节约，这个月粮食少吃了一半，那下个月往北京运的粮食就敢减少一半？<br>再说，剩下的饭菜也没有扔掉，不是一直有人回收吗，回收之后该喂猪喂猪，该炼地沟油炼地沟油，你都吃猪了，还不让猪吃的好点嘛<br>所以凭着感觉去买，吃不光，也就是吃不光了<br>但有一种东西我是从来都吃光的——食堂的免费的汤或者粥，通常我觉得我喝不了的时候，我会让阿姨给我打半碗。因为这种免费的粥，它的意义不是被购买，而是被食用，我拿了没有喝，那是真的浪费，因为如果我没有拿走它，肯定会有一个人把它拿走喝掉，我的行为使得这碗粥失去了被食用的机会，才是浪费</p>
+]]></content>
+        
+        <tag>老罗 </tag>
+         
+        <tag>浪费 </tag>
+         
+        <tag>贴膜 </tag>
+         
+         
+        <pubTime>2014-08-24T05:48:14.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/05/21/born-to-be-proud/</loc>
+    <lastmod>2014-08-24T07:25:32.000Z</lastmod>
+    <data>
+        <display>
+        <title>born to be proud</title>
+        <content><![CDATA[<h1 id="这篇放到这，等我重新回顾一下Zealer的几个评测之后补上">这篇放到这，等我重新回顾一下Zealer的几个评测之后补上</h1>
+]]></content>
+        
+        <tag>老罗 </tag>
+         
+        <tag>smartisan </tag>
+         
+        <tag>T1 </tag>
+         
+         
+        <pubTime>2014-05-20T16:11:56.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/05/14/%E7%A1%9D%E9%85%B8%E5%92%AA%E5%BA%B7%E5%94%91%E6%95%A3/</loc>
+    <lastmod>2014-06-25T02:53:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>硝酸咪康唑散</title>
+        <content><![CDATA[<blockquote>
+<p>这烧烤羊肉串儿吃的我想吐，非常想吐。怎么这么大一股膻味，你是不是真的用羊肉了？说好的猪肉刷羊油呢？无良商家，差评。<br>还是… 猪肉刷羊油才是这个味道… o(╯□╰)o<br>那也刷尼玛太多了吧摔！</p>
+</blockquote>
+<a id="more"></a>
+
+<h5 id="下面开始流水账">下面开始流水账</h5>
+<p><strong>大数据、博弈论还有应用多元统计分析结课</strong></p>
+<p>其中呢，大数据还有个大作业，博弈论还有个课程论文。<br>说到大数据的大作业我真是不得不吐槽几句，算了，一句得了：女生有点靠不住啊。咱们默认都用阿里巴巴的那个对吧，咱们组一共有五个队，你自己也在做，突然你说不想用这个，然后搬出助教压我们对吧，不厚道是吧，主要是你自己还不想做，然后还想用别人的毕设交上去。我跟你说一个女生从女神堕落到不是女神都是一瞬间的事你信不信？<br>大数据老师还是很牛逼的，感觉是见过世面的人，感觉必须得这么评价了。你觉得他好像啥都不懂，我跟你说人家学物理的数学功底那是好的一逼。到最后绝对是听不懂了，必须得磊落的承认这一点了<br>应用多元统计分析，老师是好老师，这个就不多说了，直接引用课程论文的致谢部分：</p>
+<blockquote>
+<p>其实这并不能算一篇严格意义上的论文，尽管我花在这个上面的时间并不少。<br>我非常感谢李娜老师，给我一学期的感动。<br>尽管老师自己说是刚开始在科院讲课，尽管相比老老师，新老师通常会更用心的准备，但李娜老师还是给了我很大的感动。我相信所有的同学们都会这样想。<br>我们上课的人不多，但老师还是备课备的非常充分，上课的时候也非常认真，从来都是一说就说两节课。说实话，这一学期老师讲的东西能听懂的并不是很多，但总是觉得不听特别不好意思… 所以每次都只能眼睛直勾勾的盯着黑板，尽量多听懂一些。<br>然后… 希望老师的宝宝能够健康，我觉得很幸运能跟他一起听了一学期的课，我估计他能记住的都比我要多… 嘻嘻<br>然后感谢小基友<a href="http://weibo.com/ouchengeng" target="_blank" rel="external">@欧陈_kop</a>，周二我们两个11节课都在一块，诶… 完全的审美疲劳… </p>
+</blockquote>
+<p>最后老师给回邮件的时候：<br><img src="/img/0514/mail.png" alt="嘻嘻"></p>
+<p>我想说的是：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">老师你是我导师派过来劝我读博的吗！</div></pre></td></tr></table></figure>
+
+<p>博弈论博弈论博弈论，感觉这绝对是个坑。就是被耶鲁大学的那个公开课给骗了，感觉完全不同，必须的得这么说了。也不好说老师的坏话是吧，不过这个微信群确实闹的我有点蛋疼，同学们你们赞美老师真的是发自内心的吗？是我的觉悟还不够高？必须得这么解释了，你说是不是这个道理。最后讲的东西和耶鲁大学那个老师讲的差不多，但课程极其枯燥无味，感觉必须得这么评价了。反正不喜欢。<br>最后的课程论文，准备研究一下“人计算”，NetLogo的代码已经写好了，不过感觉需要改一下，到时候会把渣代码po出来，人家这个也是个技术博客好吗！</p>
+<p><em>不想写了，今天先到这吧… </em></p>
+]]></content>
+        
+         
+        <pubTime>2014-05-14T15:55:29.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/04/29/%E9%B9%8F%E5%AE%9D%E7%9A%84%E6%96%B0%E5%AE%B6/</loc>
+    <lastmod>2014-06-25T02:53:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>鹏宝的新家</title>
+        <content><![CDATA[<p>终于如愿以偿，弄了一个<br>不知道能不能用到，能用多久<br>下一步就是学学markdown怎么用啦</p>
+<p>这一刻和你分享~</p>
+]]></content>
+        
+         
+        <pubTime>2014-04-29T14:43:35.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/06/21/bubbles-bling-bling/</loc>
+    <lastmod>2014-06-25T02:53:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>bubbles bling bling</title>
+        <content><![CDATA[<blockquote>
+<p>在很久很久以前，你拥有我，我拥有你<br>今天发现《外面的世界》真好听 (<em>^__^</em>) </p>
+</blockquote>
+<a id="more"></a>
+
+<script type="text/javascript" src="/js/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="/js/customize/bubble/udalpha.js"></script>
+<input type="hidden" id="bubbleword" value="南开大学">
+<canvas id="myCanvas"></canvas>
+<script type="text/javascript" src="/js/customize/bubble/bubbles.js"></script>
+<script type="text/javascript" src="/js/customize/bubble/main.js"></script>
+
+<p>明天是本科学校的毕业晚会<br>“聚散天涯，依依南开”<br><img src="/img/0621/1.PNG" alt=""><br>那天很激动，感觉离开很舍不得，非常的“依依”。到现在没有人拿着这个状态质问我到底回不回去，反倒是当我说我想回去看看的时候，都在问我：你回去干嘛？<br>嗯，又不是杰出校友。<br>不过作为一个杰出菜逼校友，悄悄的溜回去看一下，还是请大家高抬贵手，轻喷<br>有大半年没回去了（每次我这么说都很忐忑，因为总感觉有种“你爱多久没回去就没回去呗，学校又不在乎你”的感觉，不过你知道的，鹏宝是一个感性的人捂脸笑），跟小马哥说好了要回去，小马哥表示欢迎，并表示可以住在他们宿舍，我非常开心，上一次回去也是在他宿舍睡的，但现在头发有点长，不知道能不能进去呢。<br>其实主要是感觉头发不知道什么时候就剪掉了，赶紧抓紧时间回去得瑟一下，要不白留了（我这人，太丁日虚荣捂脸笑）</p>
+<hr>
+<p>前几天翻到<a href="http://gate.guokr.com/" title="果壳任意门" target="_blank" rel="external">果壳任意门</a>，在编程语言那个tab下面看到了“Codecademy”（没错就这点出息了），一直想学点js，css什么的，因为鹏宝对美好的事物总是有些追求尽管鹏宝自己并不那么美好。<br>它的第一个课程是“<a href="http://www.codecademy.com/zh/courses/animate-your-name/0/1" title="codecademy: animate your name" target="_blank" rel="external">Animate Your Name</a>”，就用一些小泡泡把你输入的东西画出来，鼠标划上去就动，跟上面的一样，我觉得太漂亮了因为鹏宝没见过什么世面，正好还是个教程，所以那天晚上毅然放下了手里的活计，开始教程。<br><img src="/img/0621/2.PNG" alt=""><br><img src="/img/0621/3.PNG" alt=""><br>结果教程只是在说一些基本的js，定义变量啊，列表啊什么的，根本没有讲怎么画这些小泡泡并且让它动起来，我很惋惜，所以就找到了它的源文件，想自己看一下。<br>主要有三个源文件</p>
+<ul>
+<li>main.js  这个里面就是定义显示什么文字还有泡泡的颜色的</li>
+<li>bubble.js  主要的文件，画泡泡和接收鼠标事件然后做出动作的</li>
+<li>alphabet.js  一开始没看懂，后来明白了。是把文字转换成点阵坐标的<br>看到最后的文件，我想起来大一在上C++的上机课的时候，王超老师让我们写一个小程序，输入一个字母，然后用这个字母作为“像素”，把这个字母表示出来<br>大概就是这个样子：<br><img src="/img/0621/4.PNG" alt=""><br>后来老师想了想，算了吧，太难了，固定输出一个字母的形状就行了。<br>当时好像也觉得，给一个字母，不知道字母各个像素的坐标是什么，怎么能表示出来呢<br>所以这个教程里引入了一个js文件，内容大概就是：<br><figure class="highlight javascript"><figcaption><span>alphabet.js</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">document</span>.alphabet={</div><div class="line">                A79:{</div><div class="line">                        W:<span class="number">75</span>,P:[[<span class="number">64</span>,<span class="number">89</span>,<span class="number">9</span>,-<span class="number">102</span>],[<span class="number">57</span>,<span class="number">103</span>,<span class="number">9</span>,-<span class="number">102</span>],[<span class="number">5</span>,<span class="number">89</span>,<span class="number">9</span>,-<span class="number">79</span>],</div><div class="line">                                [<span class="number">16</span>,<span class="number">104</span>,<span class="number">8</span>,-<span class="number">35</span>],[<span class="number">51</span>,<span class="number">122</span>,<span class="number">8</span>,-<span class="number">35</span>],[<span class="number">23</span>,<span class="number">118</span>,<span class="number">8</span>,-<span class="number">35</span>],</div><div class="line">                                [<span class="number">31</span>,<span class="number">133</span>,<span class="number">8</span>,<span class="number">50</span>],[<span class="number">46</span>,<span class="number">136</span>,<span class="number">8</span>,<span class="number">50</span>],[<span class="number">34</span>,<span class="number">153</span>,<span class="number">8</span>,<span class="number">69</span>],</div><div class="line">                                [<span class="number">28</span>,<span class="number">168</span>,<span class="number">7</span>,<span class="number">112</span>],[<span class="number">21</span>,<span class="number">183</span>,<span class="number">7</span>,<span class="number">112</span>]]},</div><div class="line">                A78:{</div><div class="line">                        W:<span class="number">85</span>,P:[[<span class="number">10</span>,<span class="number">148</span>,<span class="number">8</span>,-<span class="number">103</span>],[<span class="number">21</span>,<span class="number">137</span>,<span class="number">8</span>,-<span class="number">92</span>],[<span class="number">33</span>,<span class="number">125</span>,<span class="number">7</span>,-<span class="number">79</span>],</div><div class="line">                                [<span class="number">50</span>,<span class="number">124</span>,<span class="number">7</span>,-<span class="number">35</span>],[<span class="number">58</span>,<span class="number">135</span>,<span class="number">7</span>,-<span class="number">35</span>],[<span class="number">68</span>,<span class="number">148</span>,<span class="number">7</span>,-<span class="number">35</span>],</div><div class="line">                                [<span class="number">40</span>,<span class="number">111</span>,<span class="number">7</span>,<span class="number">51</span>],[<span class="number">33</span>,<span class="number">103</span>,<span class="number">7</span>,<span class="number">51</span>],[<span class="number">21</span>,<span class="number">86</span>,<span class="number">7</span>,<span class="number">51</span>],</div><div class="line">                                [<span class="number">56</span>,<span class="number">106</span>,<span class="number">7</span>,<span class="number">51</span>],[<span class="number">67</span>,<span class="number">92</span>,<span class="number">7</span>,<span class="number">112</span>]]},</div><div class="line">                ...};</div></pre></td></tr></table></figure><br>上面的这段表示的是字母“O”和“N”的各个点的坐标，键值是“A”+字母的ASCII（英语发音：/‘æski/ ASS-kee，以后我读这个的时候不要纠正我这个是 “ask” 或者 “ask2”了行吗），W的值是这个字母的宽度，用于显示多个字符的时候计算offsite.<br>后面的P就是各个点的坐标了。“O”的第一个点的坐标[64, 89, 9, -102]，64和89分别是横纵坐标（咦，这两个数怎么这么奇怪？不要查我水表… ），9是这个点的大小，半径之类的，你看到那些点的大小都不是一样的，第四个数字好像是标示这个点的透明度之类的，原来的代码里用这个数字的部分被注释掉了，但看起来就是比如字母的末端可能fade了之类的。<br>所以通过这个文件就解决了当拥有了泡泡的时候，怎么组成字母的问题。<br><figure class="highlight javascript"><figcaption><span>bubble.js</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line">...</div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">phraseToHex</span><span class="params">(phrase)</span> </span>{</div><div class="line">    <span class="keyword">var</span> hexphrase = <span class="string">""</span>;</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; phrase.length; i++) {</div><div class="line">        hexphrase += phrase.charCodeAt(i).toString(<span class="number">16</span>);</div><div class="line">    }</div><div class="line">    <span class="keyword">return</span> hexphrase;</div><div class="line">}</div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">drawName</span><span class="params">(name,colors)</span></span>{</div><div class="line">    <span class="function"><span class="keyword">function</span> <span class="title">addLetter</span><span class="params">(cc_hex, ix, letterCols)</span> </span>{</div><div class="line">    <span class="comment">//画字符的函数</span></div><div class="line">    ...</div><div class="line">    }</div><div class="line">    <span class="keyword">var</span> hexphrase = phraseToHex(name);</div><div class="line">    <span class="keyword">var</span> col_ix = -<span class="number">1</span>;</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; hexphrase.length; i += <span class="number">2</span>) {</div><div class="line">        <span class="keyword">var</span> cc_hex = <span class="string">"A"</span> + hexphrase.charAt(i) + hexphrase.charAt(i + <span class="number">1</span>);</div><div class="line">        <span class="keyword">if</span> (cc_hex != <span class="string">"A20"</span>) {</div><div class="line">            col_ix++;</div><div class="line">        }</div><div class="line">        addLetter(cc_hex, col_ix, letterColors);</div><div class="line">    }</div><div class="line">}</div><div class="line">...</div></pre></td></tr></table></figure><br>先用phraseToHex函数把输入的字母字符串，转换成ASCII的字符串，然后每两个前面加上一个“A”去document.alphabet里找字符的点阵坐标，画出。<br>我一开始觉得这个屌啊，这岂不是可以表示一切了么，所以就写了几个汉字，结果表示出来的并不是汉字，而是几个字母，后来我才想起来，这个文件里没有汉字的点阵坐标，所以表示不出来汉字。<br>那个bubble.js我还没有完全看懂，尤其是语法，因为javascrip的函数定义方式感觉很奇怪，我主要想解决的问题是，怎么能够让这个玩意显示汉字呢。<br>最主要的就是1、给出汉字的坐标；2、以汉字为键值，找到这个坐标。<br>对于第一个问题：怎样给出汉字的坐标<br>我的解决思路是，手工的去写，这样能保证非常精准。开玩笑的，怎么可能，多傻逼啊…<br>之前写过一个把图片转换成字符画的小程序<br><img src="/img/0621/ali.jpg" alt=""><br><img src="/img/0621/5.PNG" alt=""><br>呃…虽然失真比较严重，是因为阈值没有仔细设置而且字符比较单一，知道可以实现就放在那了。<br>就是把图片灰度化，然后根据像素的数值[110,255]的就是空白，[40,110)的就是”.”，[0,40)的就是”@”。<br>那如果有文字的图片就也可以这么做，所以就把文字先生成图片，然后根据图片的像素标出一些点<br>但实际上，如果以像素为单位的话，那点就太多了，所以就把图片分块，在一个块里，有多少个像素小于一定阈值（就是黑到一定程度，证明这个块是组成字的一部分），这个块就可以形成一个点，再算一下坐标什么的，就可以了。<br>最后根据输入的字符串，生成一个js文件，替换原来的alphabet.js，就搞定了。</li>
+</ul>
+<figure class="highlight python"><figcaption><span>chartojs.py</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#!/usr/bin/env python</span></div><div class="line"><span class="comment"># -*- coding: utf-8 -*-</span></div><div class="line"><span class="comment"># @Author: LiSnB</span></div><div class="line"><span class="comment"># @Date:   2014-06-20 18:36:07</span></div><div class="line"><span class="comment"># @Last Modified by:   LiSnB</span></div><div class="line"><span class="comment"># @Last Modified time: 2014-06-21 19:25:43</span></div><div class="line"><span class="comment"># @Email: lisnb.h@gmail.com</span></div><div class="line"></div><div class="line"><span class="comment">#import os</span></div><div class="line"><span class="keyword">from</span> PIL <span class="keyword">import</span> Image, ImageFont, ImageDraw</div><div class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np </div><div class="line"><span class="keyword">import</span> math </div><div class="line"><span class="comment">#import matplotlib.pyplot as plt</span></div><div class="line"><span class="keyword">import</span> random</div><div class="line"><span class="comment">#import chardet</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">getalphabet</span><span class="params">(text,jspath)</span>:</span></div><div class="line">    size = <span class="number">18</span></div><div class="line">    partical = <span class="number">2</span></div><div class="line">    p_th = math.pow(partical, <span class="number">2</span>)-partical</div><div class="line">    font = ImageFont.truetype(<span class="string">'hwhp.ttf'</span>, size+<span class="number">2</span>)</div><div class="line">    alphas = []</div><div class="line">    <span class="keyword">for</span> t <span class="keyword">in</span> text:</div><div class="line">        im = Image.new(<span class="string">'L'</span>, (size,size),<span class="number">255</span>)</div><div class="line">        dr = ImageDraw.Draw(im)</div><div class="line">        dr.text((<span class="number">0</span>,<span class="number">0</span>), t,font = font,fill=<span class="string">'#000000'</span>)</div><div class="line">        pixel = im.getdata()</div><div class="line">        p_array = np.array(pixel).reshape(size,size).T</div><div class="line">        <span class="comment"># print p_array</span></div><div class="line">        p_array = p_array.tolist()</div><div class="line">        points = []</div><div class="line">        <span class="keyword">for</span> i <span class="keyword">in</span> range(size/partical):</div><div class="line">            <span class="keyword">for</span> j <span class="keyword">in</span> range(size/partical):</div><div class="line">                a = p_array[partical*i][partical*j:partical*j+<span class="number">2</span>]</div><div class="line">                a.extend(p_array[partical*i+<span class="number">1</span>][partical*j:partical*j+<span class="number">2</span>])</div><div class="line">                <span class="keyword">if</span> a.count(<span class="number">0</span>)&gt;p_th:</div><div class="line">                    tmp_points=<span class="string">'[%s, %s, %s, %s]'</span>%( size*i,</div><div class="line">                                                    size*j+size,</div><div class="line">                                                    random.randint(<span class="number">4</span>,<span class="number">7</span>),</div><div class="line">                                                    <span class="number">0</span>)</div><div class="line">                    points.append(tmp_points)</div><div class="line">        t_key = t.encode(<span class="string">'unicode_escape'</span>)</div><div class="line">        t_key = <span class="string">'A%s'</span>%t_key[<span class="number">2</span>:]</div><div class="line">        P = <span class="string">'P:[%s]'</span>%(<span class="string">','</span>.join(points))</div><div class="line">        alpha = <span class="string">'%s:{W:180,%s}'</span>%(t_key,P)</div><div class="line">        alphas.append(alpha)</div><div class="line"></div><div class="line">    content = <span class="string">'document.alphabet={ %s};'</span>%(<span class="string">','</span>.join(alphas))</div><div class="line">    <span class="keyword">with</span> open(jspath,<span class="string">'wb'</span>) <span class="keyword">as</span> f:</div><div class="line">        f.write(content)</div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    getalphabet(<span class="string">u'允公允能日新月异'</span>,<span class="string">'udalphabet.js'</span>)</div></pre></td></tr></table></figure>
+
+<p>这个就可以生成一个拥有“允公允能日新月异”的js文件了。<br>这里有几个问题：</p>
+<ul>
+<li>文字生成图片使用PIL做的，但官网上的PIL库在编译的时候少了点什么，在使用文字生成图片的时候会报错，我不记得是什么错误了，解决办法是在<a href="http://www.lfd.uci.edu/~gohlke/pythonlibs/" target="_blank" rel="external">Unofficial Windows Binaries for Python Extension Packages</a>这个地方下载非官方的PIL库，并在使用时，由<br>  import Image<br>变成<br>  from PIL import image</li>
+<li>文字生成图片的时候，需要指定文字的字体，我本来想用比较喜欢的一些字体，但实际上，因为之后会对图像进行分块，所以要尽量使用粗一点的字体，我选择的是华文琥珀，如果你的电脑上装了这个字体（应该是都装了的），那看起来是这个样子的：<br><span style="font-family:华文琥珀;font-size:30px">英格兰你伤了哥的心了</span><br>但也因为汉字比较复杂，所以最后分辨率比较低，很写意的感觉… </li>
+<li>我也不知道原来的那个alphabet.js是怎么规定的，直接按照正常的方向生成的坐标画出来竟然是倒下来的，也懒得研究js的代码了，直接在生成坐标的时候，使用了像素矩阵的转置，就是代码中的第28行<br>p_array = np.array(pixel).reshape(size,size).T</li>
+<li>汉字用unicode表示，应该是UTF-8的，所以键值用“A”+t.encode(‘unicode_escape’)[2:]，因为比如“允”的表示是“\u5141”，键值最后是“A5141”。汉字的笔画比较复杂，所以最后生成的点也比较多，结果不在这里放了，可以看这个<a href="/js/customize/bubble/udalpha.js">udalphabet.js</a></li>
+</ul>
+<p>然后解决第二个问题：以汉字为键值，找到这个坐标<br>原来的版本因为字母使用ASCII表示的，所以每个字符的长度是2，但现在汉字是4，所以要对bubble.js改一点：</p>
+<figure class="highlight javascript"><figcaption><span>bubble.js</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">...</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">drawName</span><span class="params">(name,colors)</span></span>{</div><div class="line">    ...</div><div class="line">    <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; hexphrase.length; i += <span class="number">4</span>) {</div><div class="line">        <span class="keyword">var</span> cc_hex = <span class="string">"A"</span> + hexphrase.charAt(i) </div><div class="line">                         + hexphrase.charAt(i + <span class="number">1</span>)</div><div class="line">                         + hexphrase.charAt(i + <span class="number">2</span>)</div><div class="line">                         + hexphrase.charAt(i + <span class="number">3</span>);</div><div class="line">        <span class="keyword">if</span> (cc_hex != <span class="string">"A20"</span>) {</div><div class="line">            col_ix++;</div><div class="line">        }</div><div class="line">        addLetter(cc_hex, col_ix, letterColors);</div><div class="line">    }</div><div class="line">}</div><div class="line">...</div></pre></td></tr></table></figure>
+
+<p>大功告成，最后的效果就是<a href="#myCanvas">这样</a>了。</p>
+]]></content>
+        
+        <tag>js </tag>
+         
+        <tag>bubble </tag>
+         
+        <tag>python </tag>
+         
+        <tag>汉字点阵 </tag>
+         
+         
+        <pubTime>2014-06-21T09:03:29.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="python" url="http://lixipeng.me/categories/python/"/>
+          
+             
+              <breadCrumb title="js" url="http://lixipeng.me/categories/python/js/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+    
+    
+  <url>
+    <loc>http://lixipeng.me/2014/05/31/pick-up-the-candy-for-me-please/</loc>
+    <lastmod>2014-06-25T02:53:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>帮我捡一下糖就好</title>
+        <content><![CDATA[<blockquote>
+<p>暮投石壕村，有吏夜捉人。老翁逾墙走，老妇出门看。<br>吏呼一何怒，妇啼一何苦。听妇前致词，三男邺城戍。<br>一男附书至，二男新战死。存者且偷生，死者长已矣！</p>
+<a id="more"></a>
+
+<p>室中更无人，惟有乳下孙。有孙母未去，出入无完裙。<br>老妪力虽衰，请从吏夜归。急应河阳役，犹得备晨炊。<br>夜久语声绝，如闻泣幽咽。天明登前途，独与老翁别。</p>
+<p><em>杜甫 《石壕吏》</em></p>
+</blockquote>
+<p>没上学的时候我姐就教我背这个，还背《再别康桥》和《木兰辞》，当时我大姐上学每次放假回来，第一件事就是让我背一遍这些，搞得我现在想忘都忘不掉，以至于到现在傲娇的说这些。<br>当时我妈说，第一句最后的那个“老妇出门看”如果改成“老妇出看门”，意思也没怎么变，反而更通顺了。现在想想，我觉得还是“出看门”更好。“出门看”，应该是老妇打开门然后四处张望的样子；但实际上，我想象中的官兵抓壮丁应该是一大队人，然后举着火把，当当当的敲门，这个时候老妇应该是想知道门那里发生了什么事情什么的，所以是去“看门”。<br>后来我问，当时杜甫不也是一个官儿吗？战火纷飞的，人家老两口好心好意的收留你过夜，抓壮丁的来了，你都不出来帮忙说句话，有点说不过去吧？不过等到上课的时候，我也没有提过这个问题，因为人家作者是要“反应‘安史之乱’引起的战争给广大人民的沉重灾难，表达了诗人对劳动人民的深切同情”。</p>
+<hr>
+<p>那个视频我无论如何都不敢看，是真的不敢看。过程可以想象的到，视频就是不敢看。<br>很难想象一个人就那么被打死了。<br>很多人都在声讨周围的人为什么不冲上去帮个忙什么的，可能如果是他们在场，确实会挺身而出，我也不想否认这一点。<br>我记得我大一还是大二的时候，学院里评“十大最人”，我搞到了“最幽默”和“最有正义感”两个。“最幽默”我觉得实至名归，要说逗逼，鹏宝还是很出色的。“最有正义感”，基本大家都得到了一票，而我得到了两票，所以花落我家。在前面做展示的时候，我记得我说：<br>其实大家都是充满了正义感，只是恰巧我有两票而已。我并没有做什么充满正义感的事情，我也觉得，其实正义感并不一定要在大是大非前才能得到体现。平时的生活中也是可以有正义感的。<br>大体是这样子。<br>大三的时候，二主楼频频有绅士出没，有一次我们学院的一个学妹在上自习的时候，发现前面的一个男生（绅士）在偷拍前面的女生还是怎么样的，然后就拿出手机拍了照片，传到了人人网上。结果包括很多女生在内的很多同学对其进行了严厉的指责，质问她为什么不当场制止，后来那个学妹也很委屈。<br>我还翻了半天，找到了当时发的状态：<br><img src="/img/0531/1.PNG" alt=""><br><img src="/img/0531/2.PNG" alt=""><br>很难办的。<br>所以你如果问我，要是我在场，会不会冲上去制止他们？我的答案是，不知道，更可能是不会。<br>有些事情想起来可能真的非常简单，当时如果在场的所有人都冲上去了，那很有可能最后不会发生这种悲剧。有时候你也想，你说为啥在场的人不伸一把手呢，看着一个女人被活活打死，一点反应都没有，你觉得如果是你的话，肯定会奋不顾身的冲上去。我相信在场的所有人都会想着到底要不要帮个忙，尽管最后大家都没有行动，只是带着恐惧围观。我觉得这也很好啊，至少比大家什么都没有想，仍然按地不动，该吃汉堡吃汉堡，该喝可乐喝可乐要好得多。<br>要是只有一个人冲上去了，很显然，他也可能会被打死。<br>每个人都想要冲上去，每个人也都知道如果大家一起冲上去肯定能够避免悲剧发生，每个人也都会怕，如果自己冲上去了，别人没有动怎么办？<br>这是一个囚徒困境，理性人都是会选择坦白从宽的。<br>理性人就是会带着恐惧围观的，当然，人是有限理性的，所以可能真的有人冲上去，那如果这个人真的被打死了，周围的人怎么想呢？幸亏我没上。那以后再遇到这种事情，他连想都不会想了，因为他知道冲上去就会被打死。<br>这是一个演化博弈的过程，选择原地不动是进化稳定策略。<br>如果一个人的一罐糖撒在地上，路过的人可能毫不犹豫停下脚步，帮忙捡一下；如果一个人被另一个绝对不会采取过激行为的人无情的羞辱，你也可能会挺身而出与之争辩；如果只需要你一拳一巴掌就能够控制住场面，可能你也会豪不吝啬。<br><img src="/img/0531/3.PNG" alt=""><br>你仍然不会犹豫吗？<br>当你用冷冰冰的博弈论去分析这些事情的时候，看起来有些无情是吧。我们还是希望社会上多一些“不理性”的人，去做出一些能够让人感到温暖的事情。<br>我们一直被告知，遇到事情不要自己轻举妄动，要试图报警，让更专业的人来处理，以避免不必要的伤害。然而真的发生了这种事，又都希望所有人轻举妄动，来体现正义感。<br>很难办的。<br>看到有一条评论：如果你带着你的女朋友去吃饭，突然发生了这种事，难道你直接抛下女朋友就冲上去了吗？<br>有些事情看起来其实很简单，但真的就简单的去看待这些事情吗？在场的每一个人，都有家人，都有父母，都承担了各种角色，真的能随随便便就抛弃了吗？万一，出现了意外，那你爸爸妈妈怎么办？你的爱人？你的儿子？颁发一个“见义勇为”称号，能弥补一切吗？能弥补白发人送黑发人的悲伤？能弥补失去爱人的断肠？能弥补失去父亲的凄凉？都不能，当然，这能够弘扬社会主义核心价值观，给予不正之风以沉重的打击，毫无疑问，对于个人来说，代价太大了。对不起，使用了蹩脚的押韵排比句。<br>这是不是自私？是，但这也是一种责任感。<br>这是不是懦弱？是，但这也是一种无奈。<br>况且，自私不对吗？懦弱又怎么了？<br>我妈从很久很久以前就告诉我不要见义勇为，告诉我只要保证自己不做坏事就行了，当时我还呲之以鼻，现在长大了一点，感觉能够体会到她的心情。<br>有些人假定了很多理想的状况，最理想的就是那些见义勇为的人不会受到伤害。</p>
+<hr>
+<p>人是有限理性的动物，同时也是无限感性的动物。很可能平时看起来懦弱的人，在遇到这种事情的时候，脑袋一热，冲了上去；而平时那些全身充满了正义感，比如嘴上，的人，脑袋一热，转身走了。<br>哪有什么有预谋的见义勇为，哪有什么毫不犹豫，都是脑袋一热。<br>这次见义勇为断了一条胳膊，下次再遇到，还会冲上去吗？有人说，我还是会毫不犹豫地冲上去！<br>你知不知道你吃个饭都得你媳妇你妈一口一口喂你？<br>那些家里媳妇生孩子了，父亲重病过世了，仍然坚持给学生上完课，仍然奋斗在生产第一线的人，干嘛呢这是？<br>别人可以觉得这个光荣，唯独你不行。</p>
+<hr>
+<p>如果所有人都不做坏事，那可能就不需要那么多的见义勇为，大家都能相安无事，这也是理想的状况，所以仍然需要有些人放弃自己，挺身而出，对于这些人，我由衷的感到敬佩，因为他做到了我可能做不到的事情，不过仅此而已。</p>
+<p>总会有人在这个时候搬出马丁·尼莫拉的忏悔文：</p>
+<blockquote>
+<p>当纳粹追杀共产主义者<br>我保持沉默<br>——我不是共产主义者<br>当他们追杀社会民主主义者<br>我保持沉默<br>——我不是社会民主主义者<br>当他们追杀工会成员<br>我没站出来说话<br>——我不是工会成员<br>当他们追杀犹太人<br>我保持沉默<br>——我不是犹太人<br>当他们要追杀我<br>再也没有人为我说话了</p>
+<p><em>弗里德里希·古斯塔夫·埃米尔·马丁·尼莫拉 反纳粹忏悔文 《起初他们》</em></p>
+</blockquote>
+<p>说的难听一点，今天你站出来，就是为了有人能为你站出来吗？<br>不可否认的是，如果大家互相站出来，那么这个社会可能变得更有凝聚力。<br>但如果我是受害者，如果帮助我会给别人带来很严重的伤害 ，那就不要为我站出来了，你有你的责任，你有你的角色，你有你自己的生活，如果你真的占了出来，我不知道有多感谢，但如果没有，没关系，我可能也会这么做的。<br>不过如果我的糖罐撒了，还是麻烦帮我捡一下吧~ 我们一起吃糖<br>或者肥皂</p>
+]]></content>
+        
+        <tag>招远 </tag>
+         
+         
+        <pubTime>2014-05-31T06:46:34.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+</urlset>

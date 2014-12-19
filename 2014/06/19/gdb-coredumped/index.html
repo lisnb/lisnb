@@ -1,0 +1,421 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>gdb-coredumped | lisnb&#39;s garage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="lisnb">
+    
+    <meta name="description" content="说的都没错，但听起来怪怪的
+
+今天晚上想把代码在服务器上走一下形式，编译运行一下，通过了就收拾收拾回宿舍了。结果编译没有问题，运行的时候突然报了“段错误 (core dumped)”，当时就尿了，呵呵，学长学姐的“legacy”。">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="lisnb&#39;s garage" title="lisnb&#39;s garage"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="lisnb&#39;s garage">lisnb&#39;s garage</a></h1>
+				<h2 class="blog-motto">令人愉悦的忧伤</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="http://freebase.lixipeng.me">Freebase ( new! )</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">Tags</a></li>
+					
+						<li><a href="/categories">Categories</a></li>
+					
+						<li><a href="/about">About</a></li>
+					
+					<li>
+					
+						<script type="text/javascript">document.write(unescape('%3Cdiv id="bdcs"%3E%3C/div%3E%3Cscript charset="utf-8" src="http://rp.baidu.com/rp3w/3w.js?sid=16513815728315725021') + '&t=' + (Math.ceil(new Date()/3600000)) + unescape('"%3E%3C/script%3E'));</script>
+
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2014/06/19/gdb-coredumped/" title="gdb-coredumped" itemprop="url">gdb-coredumped</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://plus.google.com/112143900419777720000?rel=author" title="lisnb" target="_blank" itemprop="author">lisnb</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2014-06-19T15:33:40.000Z" itemprop="datePublished">6月 19 2014</time>
+    Updated:<time datetime="2014-10-31T08:18:37.000Z" itemprop="dateModified">10月 31 2014</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<blockquote>
+<p>说的都没错，但听起来怪怪的</p>
+</blockquote>
+<p>今天晚上想把代码在服务器上走一下形式，编译运行一下，通过了就收拾收拾回宿舍了。<br>结果编译没有问题，运行的时候突然报了“段错误 (core dumped)”，当时就尿了，呵呵，学长学姐的“legacy”。</p>
+<a id="more"></a>
+
+<p>代码需要在windows和linux上跨平台运行，为了避免使用ftp工具（一开始一直使用psftp, 虽然命令行看起来有点炫酷但实在是太不方便了，后来找到了一个FileZilla, 挺好用的，但也挺麻烦），就开始用git。这几天还和范老师猛烈的研究git怎么用，幸好有林大神。<br>所以代码都是在Windows上写的，用Visual Studio。Visual Studio 我装了两个版本，2008 和 2013 Express。因为实验室里之前的组件都是用2008编译的，所以依赖那些的组件在2013上编译通不过，也就没法调试。但2008写代码实在是太难看了，尤其是配合上Visual Assist，简直难看，学长又拒绝使用2013重新编译原来的组件，所以机智的鹏宝会有一个build目录和一个build_2013目录，cmake两次，一次用2008的，一次用2013的，用2013的看代码写代码写注释，用2008的编译调试，诶，疲劳。<br>怎么说那去了。<br>总之发现了错误我很慌张，因为在windows上是没有问题的（诶，以后被测试的抓到可能说的最多的一句话了），所以也就没法在VS里调试，项目又很大，用gdb一点一点调试肯定会很难过。所以就去网上找，然后发现可以利用出错之后的core文件使用gdb找到出问题的地方。<br>然后就用 -DCMAKE_BUILD_TYPE=Debug 给生成的可执行文件添加了调试信息（这也解决了我之前的一个问题，我之前问范老师，为啥windows上的大家都提供一个release的lib，一个debug的lib，但linux上的只有release的呢？范老师说，linux上可能只有release吧。嘻嘻嘻嘻嘻，才不是…）<br>然后调整了core文件的大小限制，生成了core文件，最后用gdb找到了出问题的位置，卧槽这的代码我还没开始看呢… 烦死了。<br>值得庆幸的是，鹏宝机智的发现，原来是输入的文件的格式不对，程序没有问题，但其实这也算有问题，鲁棒性不强… robustness哈哈，这个单词好有意思…<br>所以问题就解决了… </p>
+<hr>
+<p>在程序运行出错时，linux会生成一个core文件，用以记录系统运行的错误，这个文件的大小不一，依据当时的环境而定，可以设置这个文件的大小上限，如果上限小于当时实际的大小，那么这个文件就不会生成。<br>可以使用：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ulimit -c unlimited</div></pre></td></tr></table></figure><br>取消对下一次运行时，对core文件大小的限制，也可以在系统的配置文件中修改<br>为了尝试，我们写一个小程序<br>代码如下：<br><figure class="highlight cpp"><figcaption><span>foo.cpp</span></figcaption><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;iostream&gt;</span></div><div class="line"><span class="preprocessor">#<span class="keyword">include</span> &lt;vector&gt;</span></div><div class="line"><span class="comment">//using namespace std;</span></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">void</span> baz()</div><div class="line">{</div><div class="line">	<span class="stl_container"><span class="built_in">vector</span>&lt; <span class="keyword">char</span>&gt;</span> vc;</div><div class="line">	std::<span class="built_in">cout</span>&lt;&lt; vc[<span class="number">2</span>]&lt;&lt; std::endl;</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">void</span> biz()</div><div class="line">{</div><div class="line">	baz();</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">void</span> bar()</div><div class="line">{</div><div class="line">	biz();</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">void</span> foo()</div><div class="line">{</div><div class="line">	bar();</div><div class="line">}</div><div class="line"></div><div class="line"><span class="keyword">int</span> main()</div><div class="line">{</div><div class="line">	foo();</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">}</div></pre></td></tr></table></figure>
+
+<p>写了这么多函数是为了突出调用关系。<br>很显然，在baz()函数中，访问了不存在的vc[2]会发生错误<br>先设置core文件的大小上限，然后使用g++编译代码，运行，发现产生了段错误，coredumped，并且在该目录下生成了core文件。<br><img src="/img/0619/1.PNG" alt=""><br>随后，为了找到问题出现在哪里，使用gdb</p>
+<p><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">gdb ./foo core</div></pre></td></tr></table></figure><br>然后输入</p>
+<p><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">(gdb) where</div></pre></td></tr></table></figure><br><img src="/img/0619/2.PNG" alt=""><br>就能看到堆栈和调用关系，找到出现问题的位置了，比如在这里我们就把问题定位在baz()函数里了，但问题是，如果baz()函数很复杂，那么能不能找到更精准的定位呢？<br>我们需要在编译的时候使用-g选项为生成的可执行文件添加调试信息：</p>
+<p><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">g++ foo.cpp -o foo -g</div></pre></td></tr></table></figure><br>然后再按照上面的流程，就会发现，问题出现在baz()函数的第10行<br><img src="/img/0619/3.PNG" alt=""></p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/linux/">linux</a><a href="/tags/gdb/">gdb</a><a href="/tags/C++/">C++</a><a href="/tags/coredumped/">coredumped</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/linux/">linux</a>►<a class="article-category-link" href="/categories/linux/C++/">C++</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://lixipeng.me/2014/06/19/gdb-coredumped/" data-title="gdb-coredumped | lisnb&#39;s garage" data-tsina="1394458123" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2014/06/21/bubbles-bling-bling/" title="bubbles bling bling">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  bubbles bling bling</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2014/05/31/pick-up-the-candy-for-me-please/"  title="帮我捡一下糖就好">
+ <strong>NEXT:</strong><br/> 
+ <span>帮我捡一下糖就好
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section class="comment">
+	<div class="ds-thread"></div>
+</section>
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+  
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+  <div class="tagcloudlist">
+    <p class="asidetitle">Tag Cloud</p>
+    <div class="tagcloudlist clearfix">
+       <a href="/tags/C++/" style="font-size: 20.00px;">C++</a><a href="/tags/Linux/" style="font-size: 10.00px;">Linux</a><a href="/tags/T1/" style="font-size: 15.00px;">T1</a><a href="/tags/bubble/" style="font-size: 10.00px;">bubble</a><a href="/tags/c++/" style="font-size: 10.00px;">c++</a><a href="/tags/callgrind/" style="font-size: 10.00px;">callgrind</a><a href="/tags/chrome-extension/" style="font-size: 10.00px;">chrome extension</a><a href="/tags/coredumped/" style="font-size: 10.00px;">coredumped</a><a href="/tags/freebase/" style="font-size: 10.00px;">freebase</a><a href="/tags/gdb/" style="font-size: 10.00px;">gdb</a><a href="/tags/git/" style="font-size: 10.00px;">git</a><a href="/tags/gprof2dot/" style="font-size: 10.00px;">gprof2dot</a><a href="/tags/hexo/" style="font-size: 10.00px;">hexo</a><a href="/tags/io/" style="font-size: 10.00px;">io</a><a href="/tags/javascript/" style="font-size: 10.00px;">javascript</a><a href="/tags/js/" style="font-size: 10.00px;">js</a><a href="/tags/leetcode/" style="font-size: 10.00px;">leetcode</a><a href="/tags/linux/" style="font-size: 15.00px;">linux</a><a href="/tags/mac/" style="font-size: 10.00px;">mac</a><a href="/tags/memcheck/" style="font-size: 10.00px;">memcheck</a><a href="/tags/memory-leak/" style="font-size: 10.00px;">memory leak</a><a href="/tags/pacman/" style="font-size: 10.00px;">pacman</a><a href="/tags/permutation/" style="font-size: 10.00px;">permutation</a><a href="/tags/python/" style="font-size: 20.00px;">python</a><a href="/tags/rdbuf/" style="font-size: 10.00px;">rdbuf</a><a href="/tags/smartisan/" style="font-size: 15.00px;">smartisan</a><a href="/tags/svn/" style="font-size: 10.00px;">svn</a><a href="/tags/valgrind/" style="font-size: 15.00px;">valgrind</a><a href="/tags/傻老娘们儿/" style="font-size: 10.00px;">傻老娘们儿</a><a href="/tags/全排列/" style="font-size: 10.00px;">全排列</a><a href="/tags/共享账户/" style="font-size: 10.00px;">共享账户</a><a href="/tags/内存泄漏/" style="font-size: 10.00px;">内存泄漏</a><a href="/tags/南开大学/" style="font-size: 10.00px;">南开大学</a><a href="/tags/小浣熊/" style="font-size: 10.00px;">小浣熊</a><a href="/tags/招远/" style="font-size: 10.00px;">招远</a><a href="/tags/文件共享/" style="font-size: 10.00px;">文件共享</a><a href="/tags/汉字点阵/" style="font-size: 10.00px;">汉字点阵</a><a href="/tags/浪费/" style="font-size: 10.00px;">浪费</a><a href="/tags/罗永浩/" style="font-size: 10.00px;">罗永浩</a><a href="/tags/老罗/" style="font-size: 20.00px;">老罗</a>
+    </div>
+  </div>
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+			<li><a href="/categories/linux/C++/" title="C++">C++<sup>2</sup></a></li>
+		
+			<li><a href="/categories/C++/" title="C++">C++<sup>2</sup></a></li>
+		
+			<li><a href="/categories/C++/Linux/" title="Linux">Linux<sup>1</sup></a></li>
+		
+			<li><a href="/categories/fullstack/" title="fullstack">fullstack<sup>2</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>1</sup></a></li>
+		
+			<li><a href="/categories/python/js/" title="js">js<sup>1</sup></a></li>
+		
+			<li><a href="/categories/leetcode/" title="leetcode">leetcode<sup>1</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>2</sup></a></li>
+		
+			<li><a href="/categories/mac/" title="mac">mac<sup>1</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>2</sup></a></li>
+		
+			<li><a href="/categories/leetcode/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/python/国哥/" title="国哥">国哥<sup>1</sup></a></li>
+		
+			<li><a href="/categories/碎碎碎碎念/" title="碎碎碎碎念">碎碎碎碎念<sup>9</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="linkslist" style="margin-top:60px;">
+  <!--p class="asidetitle">Links</p-->
+  <p class="asidetitle">基情链接</p>
+    <ul>
+      <!--li><a href="http://yangjian.me" target="_blank" title="YangJian">Alimon's Blog</a></li>
+      <li><a href="http://hexo.io" target="_blank" title="Hexo">Hexo</a></li-->
+      <li><a href="http://oucg.sinaapp.com/" target="_blank" title="ouchengeng's blog">欧小本的小站</a></li>
+      <li><a href="http://faneshion.github.io/fancy" target="_blank" title="faneshion's blog">范老师不要域名</a></li>
+    </ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">Archives</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12">December 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/11">November 2014</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10">October 2014</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09">September 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/08">August 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/07">July 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06">June 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/05">May 2014</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04">April 2014</a><span class="archive-list-count">1</span></li></ul>
+  </div>
+
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> It&#39;s not about the salary <br/>
+			It&#39;s all about reality</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/1394458123" target="_blank" title="weibo"></a>
+		
+		
+		
+		<a href="https://github.com/lisnb" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/li.lisnb.1" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2014 
+		
+		<a href="http://lixipeng.me" target="_blank" title="lisnb">lisnb</a>
+		
+		</p>
+</div>
+</footer>
+    <!--script src="/js/jquery-2.1.0.min.js"></script--!>
+<script src="http://libs.useso.com/js/jquery/2.1.1/jquery.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"lisnb"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+<!--link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css"--!>
+<link rel="stylesheet" href="http://libs.useso.com/js/fancybox/2.1.5/jquery.fancybox.min.css" media="screen" type="text/css">
+<!--script src="/fancybox/jquery.fancybox.pack.js"></script--!>
+<script src="http://libs.useso.com/js/fancybox/2.1.5/jquery.fancybox.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+  </body>
+</html>

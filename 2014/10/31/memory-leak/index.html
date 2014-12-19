@@ -1,0 +1,569 @@
+
+ <!DOCTYPE HTML>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  
+    <title>Linux下C++内存泄漏检测 | lisnb&#39;s garage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, minimum-scale=1">
+    
+    <meta name="author" content="lisnb">
+    
+    <meta name="description" content="内存泄漏 ！- ！内存泄露
+应该是前者">
+    
+    
+    
+    
+    
+    <link rel="icon" href="/img/favicon.ico">
+    
+    
+    <link rel="apple-touch-icon" href="/img/pacman.jpg">
+    <link rel="apple-touch-icon-precomposed" href="/img/pacman.jpg">
+    
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+
+</head>
+
+  <body>
+    <header>
+      <div>
+		
+			<div id="imglogo">
+				<a href="/"><img src="/img/logo.svg" alt="lisnb&#39;s garage" title="lisnb&#39;s garage"/></a>
+			</div>
+			
+			<div id="textlogo">
+				<h1 class="site-name"><a href="/" title="lisnb&#39;s garage">lisnb&#39;s garage</a></h1>
+				<h2 class="blog-motto">令人愉悦的忧伤</h2>
+			</div>
+			<div class="navbar"><a class="navbutton navmobile" href="#" title="Menu">
+			</a></div>
+			<nav class="animated">
+				<ul>
+					<ul>
+					 
+						<li><a href="/">Home</a></li>
+					
+						<li><a href="http://freebase.lixipeng.me">Freebase ( new! )</a></li>
+					
+						<li><a href="/archives">Archives</a></li>
+					
+						<li><a href="/tags">Tags</a></li>
+					
+						<li><a href="/categories">Categories</a></li>
+					
+						<li><a href="/about">About</a></li>
+					
+					<li>
+					
+						<script type="text/javascript">document.write(unescape('%3Cdiv id="bdcs"%3E%3C/div%3E%3Cscript charset="utf-8" src="http://rp.baidu.com/rp3w/3w.js?sid=16513815728315725021') + '&t=' + (Math.ceil(new Date()/3600000)) + unescape('"%3E%3C/script%3E'));</script>
+
+					
+					</li>
+				</ul>
+			</nav>			
+</div>
+
+    </header>
+    <div id="container">
+      <div id="main" class="post" itemscope itemprop="blogPost">
+	<article itemprop="articleBody"> 
+		<header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2014/10/31/memory-leak/" title="Linux下C++内存泄漏检测" itemprop="url">Linux下C++内存泄漏检测</a>
+  </h1>
+  <p class="article-author">By
+    
+      <a href="https://plus.google.com/112143900419777720000?rel=author" title="lisnb" target="_blank" itemprop="author">lisnb</a>
+    </p>
+  <p class="article-time">
+    <time datetime="2014-10-31T08:14:08.000Z" itemprop="datePublished">10月 31 2014</time>
+    Updated:<time datetime="2014-12-19T12:39:53.000Z" itemprop="dateModified">12月 19 2014</time>
+    
+  </p>
+</header>
+	<div class="article-content">
+		
+		
+		<h2 id="内存泄漏_！-_！内存泄露">内存泄漏 ！- ！内存泄露</h2>
+<p>应该是前者<br><a id="more"></a><br><a href="http://zh.wikipedia.org/wiki/内存泄漏" target="_blank" rel="external">维基百科 内存泄露 — Wikipedia, the free encyclopedia.</a>中用的是“泄漏”。另外，“泄露”，多指信息，机密被不该知道的人知道了，而“泄漏”除了包含以上意思之外，还包括气体液体流出等，为什么我突然想做一个比喻：从嘴里出来的就是泄露，从菊花里出来的就是泄漏[抠鼻]。所以，当形容非抽象的东西跑出来的时候，应该用“泄漏”，也就应该是“内存泄漏”</p>
+<hr>
+<h2 id="valgrind">valgrind</h2>
+<p>在改一个组里的组件，因为C++写的不是特别多，所以改完了不太放心，一旦跑起来不崩溃，那最担心的就是内存泄漏的问题。弄了几天，记录一下。<br>网上查到了挺多工具，最后用的是<a href="http://valgrind.org" target="_blank" rel="external">valgrind</a>, 优点是不用添加什么编译选项（不像<em>grpof</em>，需要在编译的时候使用<code>-pg</code>，但还是建议加调试选项，即<code>-g</code>，这样最后在看报告的时候会更清晰。关于如何在<em>cmake</em>中使用调试选项，在<a href="http://lixipeng.me/2014/06/19/gdb-coredumped/" target="_blank" rel="external">这篇</a>里提到过）。</p>
+<h3 id="原理">原理</h3>
+<p>我挺想能了解一下原理的，但现在还没有时间，所以如果以后有机会（因为肯定还会用到），希望能够把这个补上。</p>
+<h3 id="使用">使用</h3>
+<p>加入你的可执行文件是<code>libido arg1 arg2 ...</code>，那最简单的使用方法就是：</p>
+<pre><code>valgrind --leak-check=yes libido arg1 arg2 <span class="keyword">...</span>
+</code></pre><p>你的程序会比之前慢好多，大概有20到30倍左右，还会用好多内存。然后valgrind就会把所有的信息都输出出来。</p>
+<h4 id="输出到文件中">输出到文件中</h4>
+<p>如果你想把这些信息输出到文件中，以备之后分析，那可以将输出重定向，但应该注意的是，如果你只用以下命令：</p>
+<pre><code>valgrind --leak-check=yes libido arg1 <span class="keyword">...</span> &gt; memleak.report.1
+</code></pre><p>那最后<em>memleak.report.1</em>这个文件中只会有libido的输出，并不会有检测到的信息，因为你程序的输出是 stdout(标准输出文件，宏定义是1)，但valgrind的检测信息实际上是关于内存的错误信息，所以使用的流应该是 stderr(标准错误输出文件，宏定义是2)，上面的命令只将 1 的内容重定向到了<em>memleak.report.1</em>中，但3没有，所以需要对3进行重定向，使用：</p>
+<pre><code>valgrind --leak-check=yes libido arg1 <span class="keyword">...</span> &gt; memleak.report.1 <span class="number">2</span>&gt;<span class="number">1</span>
+或者
+valgrind --leak-check=yes libido arg2 <span class="keyword">...</span> &amp;&gt; memleak.report.1
+</code></pre><h4 id="使用screen命令">使用screen命令</h4>
+<p>当然这可能还有一个问题，就是因为运行时间会很长，所以你可能决定晚上的时候让它运行，你先回宿舍，并且把路由器拔走（比如我… ），那就需要使用screen命令，但使用screen命令的时候要注意，直接使用：</p>
+<pre><code>screen valgrind vgargs <span class="keyword">...</span> libido args <span class="keyword">...</span> &amp;&gt; memleak.report.1
+</code></pre><p>是没有办法达到目的的，原因我不太清楚，你可以用</p>
+<pre><code><span class="input"><span class="prompt">screen ls &gt;</span> <span class="number">1</span>.txt</span>
+</code></pre><p>试一下，<em>1.txt</em>中是没有内容的。可能是因为标准输出文件更改了？所以如果要用screen的话，就要先使用screen命令打开新的窗口，然后再使用之前的命令，就可以把信息输出到文件中了，敲完命令，<code>Ctrl+a,d</code>,detach一下，你就可以回宿舍了。</p>
+<h4 id="—log-file">—log-file</h4>
+<p>当然输出到文件这种简单的功能肯定本身就带了…<br>使用<em>—log-file</em>可以指定报告文件，文件名中还可以使用变量，比如<code>%p</code>代表当前的进程号，比如当前的进程号是 38324，那么</p>
+<pre><code>valgrind --leak-check=yes --<span class="keyword">log</span>-<span class="keyword">file</span>=<span class="variable">%p</span>.memleak.report
+</code></pre><p>那么会得到一个<em>38324.memleak.report</em>的文件。当然还有其他的参数，可以参考官方文档，其中<code>%</code>可以转义，使用<code>%%</code>。</p>
+<h3 id="几个参数">几个参数</h3>
+<p>其实我也没用几个… </p>
+<p><code>--leak-check=&lt;no|summary|yes|full&gt; [default: summary]</code><br>　　当打开此选项时，检测内存泄漏，如果设置成<code>summary</code>，那只在最后给一个结论，就是泄漏了没有，泄漏了多少；如果设置成<code>yes</code>或者<code>full</code>，会给出泄漏的细节</p>
+<p><code>--track-origins=&lt;yes|no&gt; [default: no]</code><br>　　控制是否跟踪那些没有初始化的值，默认不跟踪… 我晕… 我还自己写脚本把那些给去掉，看来不用指定… 如果指定了，在报告中会有体现，一会说… 
+　　</p>
+<h3 id="报告解读">报告解读</h3>
+<h4 id="LEAK_SUMMARY">LEAK SUMMARY</h4>
+<p>会列出总结</p>
+<pre><code>=<span class="ruby">=<span class="number">45924</span>== <span class="constant">LEAK</span> <span class="constant">SUMMARY</span><span class="symbol">:</span>
+</span>=<span class="ruby">=<span class="number">45924</span>==    definitely <span class="symbol">lost:</span> <span class="number">10</span> bytes <span class="keyword">in</span> <span class="number">1</span> blocks
+</span>=<span class="ruby">=<span class="number">45924</span>==    indirectly <span class="symbol">lost:</span> <span class="number">0</span> bytes <span class="keyword">in</span> <span class="number">0</span> blocks
+</span>=<span class="ruby">=<span class="number">45924</span>==      possibly <span class="symbol">lost:</span> <span class="number">0</span> bytes <span class="keyword">in</span> <span class="number">0</span> blocks
+</span>=<span class="ruby">=<span class="number">45924</span>==    still <span class="symbol">reachable:</span> <span class="number">0</span> bytes <span class="keyword">in</span> <span class="number">0</span> blocks
+</span>=<span class="ruby">=<span class="number">45924</span>==         <span class="symbol">suppressed:</span> <span class="number">25</span>,<span class="number">264</span> bytes <span class="keyword">in</span> <span class="number">377</span> blocks </span>
+</code></pre><h4 id="Memory_leak_detection">Memory leak detection</h4>
+<p>(这里翻译一下文档，我觉得是最有意思的部分)</p>
+<p>Memcheck 跟踪由 <code>malloc/new</code> 等等在堆上申请的 blocks，所以当程序退出的时候，它能够知道哪些blocks没有被释放掉。<br>如果正确的设置了 <code>--leak-check</code> 选项，那对于剩下的那些没有被释放掉的blocks，valgrind会逐一的在 <code>root-set</code> 中确定是否仍然是可达的。这个 <code>root-set</code> 由两部分组成，一部分是所有线程的<code>通用目的暂存器(General Purpose Registers, GPRs)</code>，另一部分记录了那些包括栈空间在内的内存的用户空间中被分配的，初始化的，指针指向的数据字等。<br>如果想要访问一个 block， 有两种方法。第一种就是通过 “<code>头指针(start-pointer)</code>”，即那些指向一个 block 起始地址的指针；第二种是“<code>中间指针(interior-pointer)</code>”，就是那些指向一个 block 中间的指针。有以下几种情况，会导致出现这种 中间指针：</p>
+<ul>
+<li>可能这个指针一开始是指向block的开始的，但可能在程序中被故意或者无意间移动了。尤其当你使用了<code>tagged pointer</code>时，<strong>i.e. if it uses the bottom one, two or three bits of a pointer, which are normally always zero due to alignment, in order to store extra information</strong>(没懂，tagged pointer是啥… )</li>
+<li>可能是内存中的垃圾，随机出现的，一点关系都没有，只是巧合</li>
+<li>可能是指向C++<code>std::string</code>的内部 char 型数组的指针。例如，有些编译器会在std::string的前面加上三个字（word）来存储这个字符串的长度，字符串的容量还有引用数目，然后再去存真正的字符数组。所以返回的字符数组的地址是三个字后的地址</li>
+<li>有些代码可能申请了一个 block的内存，然后用前八个字节存储（block的大小-8）一个64位的数，<code>sqlite3MemMalloc</code>就这么干</li>
+<li>可能指向的是用<code>new[]</code>申请的C++的对象（有析构函数）的数组。在这种情况下，有的编译器会在申请的block最前面，用一个<code>magic cookie</code>存储这个数组的长度，然后略过这个magic cookie，返回数组的地址。在<a href="http://theory.uwinnipeg.ca/gnu/gcc/gxxint_14.html" target="_blank" rel="external">这里</a>能找到更多的信息。</li>
+<li>也可能是指向了一个使用了多重继承的C++对象的成员</li>
+</ul>
+<p>在内存检测的过程中，你也可以选择性的打开启发式检测，来检测由上述几种情况（<code>stdstring</code>,<code>length64</code>,<code>newarray</code>,<code>multipleinheritance</code>）导致的中间指针。如果启发式检测被激活，那么如果检测到由上述几种情况导致的中间指针，那么该block仍然会被认为是可达的，就像这个指针也是头指针一样。<br>基于此，来看一下下述的9种可能的情况：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Pointer chain</th>
+<th>AAA Leak Case</th>
+<th>BBB Leak Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>RRR ——————&gt; BBB</td>
+<td></td>
+<td>DR</td>
+</tr>
+<tr>
+<td>2</td>
+<td>RRR —-&gt; AAA —-&gt; BBB</td>
+<td>DR</td>
+<td>IR</td>
+</tr>
+<tr>
+<td>3</td>
+<td>RRR 　　　　　　BBB　　　</td>
+<td></td>
+<td>DL</td>
+</tr>
+<tr>
+<td>4</td>
+<td>RRR　　 AAA —-&gt; BBB 　</td>
+<td>DL</td>
+<td>IL</td>
+</tr>
+<tr>
+<td>5</td>
+<td>RRR ———?——-&gt; BBB</td>
+<td></td>
+<td>(y)DR, (n)DL</td>
+</tr>
+<tr>
+<td>6</td>
+<td>RRR —-&gt; AAA -?-&gt; BBB</td>
+<td>DR</td>
+<td>(y)IR, (n)DL</td>
+</tr>
+<tr>
+<td>7</td>
+<td>RRR -?-&gt; AAA —-&gt; BBB</td>
+<td>(y)DR, (n)DL</td>
+<td>(y)IR, (n)IL</td>
+</tr>
+<tr>
+<td>8</td>
+<td>RRR -?-&gt; AAA -?-&gt; BBB</td>
+<td>(y)DR, (n)DL</td>
+<td>(y,y)IR, (n,y)IL, (_,n)DL</td>
+</tr>
+<tr>
+<td>9</td>
+<td>RRR 　　 AAA -?-&gt; BBB</td>
+<td>DL</td>
+<td>(y)IL, (n)DL</td>
+</tr>
+</tbody>
+</table>
+<p>指针图例：</p>
+<ul>
+<li><code>RRR</code> ：一个 root set 节点，或者一个直接可达的block</li>
+<li><code>AAA</code>,<code>BBB</code> ： 堆上的 block</li>
+<li><code>---&gt;</code> ：一个头指针</li>
+<li><code>-?-&gt;</code> ：一个中间指针</li>
+</ul>
+<p>内存泄漏图例：</p>
+<ul>
+<li><code>DR</code> ：直接可达</li>
+<li><code>IR</code> ：间接可达</li>
+<li><code>DL</code> ：直接泄漏</li>
+<li><code>IL</code> ：间接泄漏</li>
+<li><code>(y)XY</code> ：如果中间指针是<code>real-pointer</code>（真的指针？），那么就XY</li>
+<li><code>(n)XY</code> ：如果中间指针不是<code>real-pointer</code>（真的指针？），那么就XY</li>
+<li><code>(_)XY</code> ：无论是不是<code>real-pointer</code>（真的指针？），都XY</li>
+</ul>
+<p>每一种可能的泄漏情况，都能归结为上述九种之一，Memcheck工具在输出时，对结果做了合并，得到以下几种输出结果：</p>
+<ul>
+<li><code>Still reachable</code>. 对于BBB块来说，这涵盖了上述的 1 和 2， 有头指针或者头指针链表指向了BBB。 因为有指针指向这个块，那么至少在原则上，当程序退出的时候，程序员会把它释放掉。“Still reachable” 的块是一种很常见的情况，基本不是什么问题，所以默认情况下，Memecheck不会单独把它报出来</li>
+<li><code>Definitely lost</code>. 对于BBB来说，这是上述的情况3。没有指针指向BBB块了。所以这个块就被标示为“丢失”,因为在程序员基本已经不可能在程序退出的时候把它给释放掉了，因为没有指针指向它（<em>找不到了</em>）。一般是由于在前面的代码中，丢掉了指向这个块的指针，程序员应该对此负责！</li>
+<li><code>Indirectly lost</code>. 对于BBB来说，这涵盖了上述的情况4和情况9。这意味着这些块丢失了，但不是因为没有指针指向它，而是因为指向它们的块自己本身也丢失了（<em>这里的AAA相当于情况3中的BBB</em>），比如说有一棵二叉树，但指向根节点的指针不见了，那它所有的子孙节点都“Indirectly lost”。因为一旦“Definitely lost”的块找回来了，那么这些间接丢失的块就能够找回来，所以Memcheck也不会单独的报出来</li>
+<li><code>Possibly lost</code>. 这涵盖了上述的情况5-8，仍然是对于BBB来说。确实是有至少一个指针指向这个块，但其中至少有一个是中间指针。这也有可能恰好一个内存中的随机值，恰好是这个block中的地址，所以除非你知道有中间指针确实存在，否则你应该给予关注。</li>
+</ul>
+<p>另外，<strong>if suppressions exists for a block, it will be reported as “suppressed” no matter what which of the above four kinds it belongs to</strong>(suppression 不知道是啥… )</p>
+<p>如果指定了<code>--leak-check=full</code>，那对于每个绝对丢失或者可能丢失的情况，Memcheck都会给出具体的细节，包括内存是在哪里申请的。（实际上，它把所有因为同样原因发生泄漏，并且有“同样”堆栈信息的记录合并到一起。当然，你可以通过“—leak-resolution”来定义“同样”。）它不能告诉你什么时候，或者为什么发生了内存泄漏，这些需要你自己去弄i。通常，你得尽可能的让自己的程序中不会产生任何”definitely lost”或者”possibly lost”，然后安全退出。</p>
+<p>例如：</p>
+<blockquote>
+<p>8 bytes in 1 blocks are definitely lost in loss record 1 of 14<br>　　at 0x……..: malloc (vg_replace_malloc.c:…)<br>　　by 0x……..: mk (leak-tree.c:11)<br>　　by 0x……..: main (leak-tree.c:39)<br>88 (8 direct, 80 indirect) bytes in 1 blocks are definitely lost in loss record 13 of 14<br>　　at 0x……..: malloc (vg_replace_malloc.c:…)<br>　　by 0x……..: mk (leak-tree.c:11)<br>　　by 0x……..: main (leak-tree.c:25)<br>　　<br>第一条信息描述的是一个很简单的情况，即：一个block中的8个字节直接丢失了。第二条中提到了另外的8个字节也直接丢失了，不同的是，还有80字节因为这8个字节的直接丢失而间接丢失了。这些内存丢失的信息的输出没有什么特定的顺序，所以信息的编号没有太多实际的意义。这些编号可以在使用Valgrind gdbserver的时候，用来列出泄漏的内存块的地址，并且能给出关于这个块为什么还是可达的详细信息。</p>
+</blockquote>
+<p>当指定了<code>--leak-check=full</code>时，可以使用<code>--show-leak-kinds=&lt;set&gt;</code>来指定所要显示的泄漏的类型。<br><code>&lt;set&gt;</code>，如果想要通过这个set指定显示的类型，可以使用以下方法：</p>
+<ul>
+<li>在<code>definite</code>,<code>indirect</code>,<code>possible</code>,<code>reachable</code>中，选择一项或者多项，然后用逗号隔开 </li>
+<li><code>all</code> 用来选择所有的类型</li>
+<li><code>none</code> 什么都不显示</li>
+</ul>
+<h3 id="编译器优化">编译器优化</h3>
+<p>上面的文档介绍的是泄漏的症状，在对组件进行测试的时候，所有这里列出的情况都遇到了，还有一些很奇怪的情况，比如：</p>
+<pre><code><span class="keyword">string</span> reck = <span class="string">"pull up to the parties"</span>;
+</code></pre><p>这句也会报内存泄漏。<br>这个情况查了挺长时间，后来找到了<a href="http://valgrind.org/docs/manual/faq.html" target="_blank" rel="external">可能的原因</a>：<br>有一些编译器在编译的时候会做一些优化，有一些对象在析构了之后，并没有被马上还给OS，而是缓存在一个池里，等待重用，这可能是一个原因。<br>所以在进行内存检测时候，应该尽量关闭编译器的优化，用最原生态的去测试（可能还会慢上若干倍）。<br>对于上面提到的这个问题，有一个变量可以控制，<code>GLIBCXX_FORCE_NEW</code>，可以控制编译器，每次都重新申请，而不适用池的机制。<br>使用这个变量，就在你当前的终端上输入： </p>
+<pre><code><span class="keyword">export</span> GLIBCXX_FORCE_NEWS=<span class="number">1</span>
+</code></pre><p>然后进行编译，注意，<strong>这并不是一个CMAKE参数</strong>。</p>
+<h2 id="总结">总结</h2>
+<p>本来是想连性能测试都放在一起的，不过感觉太长了。<br>就是把自己学到的一点东西，在这里记录一下。</p>
+  
+	</div>
+		<footer class="article-footer clearfix">
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/linux/">linux</a><a href="/tags/内存泄漏/">内存泄漏</a><a href="/tags/memory-leak/">memory leak</a><a href="/tags/C++/">C++</a><a href="/tags/valgrind/">valgrind</a><a href="/tags/memcheck/">memcheck</a>
+  </div>
+
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/C++/">C++</a>►<a class="article-category-link" href="/categories/C++/Linux/">Linux</a>
+</div>
+
+
+
+<div class="article-share" id="share">
+
+  <div data-url="http://lixipeng.me/2014/10/31/memory-leak/" data-title="Linux下C++内存泄漏检测 | lisnb&#39;s garage" data-tsina="1394458123" class="share clearfix">
+  </div>
+
+</div>
+</footer>   	       
+	</article>
+	
+<nav class="article-nav clearfix">
+ 
+ <div class="prev" >
+ <a href="/2014/10/31/mac-file-share/" title="mac与windows间文件共享和账户设置">
+  <strong>PREVIOUS:</strong><br/>
+  <span>
+  mac与windows间文件共享和账户设置</span>
+</a>
+</div>
+
+
+<div class="next">
+<a href="/2014/10/30/malaoluo/"  title="你要成功，这很重要">
+ <strong>NEXT:</strong><br/> 
+ <span>你要成功，这很重要
+</span>
+</a>
+</div>
+
+</nav>
+
+	
+<section class="comment">
+	<div class="ds-thread"></div>
+</section>
+
+</div>  
+      <div class="openaside"><a class="navbutton" href="#" title="Show Sidebar"></a></div>
+
+  <div id="toc" class="toc-aside">
+  <strong class="toc-title">Contents</strong>
+  <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#内存泄漏_！-_！内存泄露"><span class="toc-number">1.</span> <span class="toc-text">内存泄漏 ！- ！内存泄露</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#valgrind"><span class="toc-number">2.</span> <span class="toc-text">valgrind</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#原理"><span class="toc-number">2.1.</span> <span class="toc-text">原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#使用"><span class="toc-number">2.2.</span> <span class="toc-text">使用</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#输出到文件中"><span class="toc-number">2.2.1.</span> <span class="toc-text">输出到文件中</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#使用screen命令"><span class="toc-number">2.2.2.</span> <span class="toc-text">使用screen命令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#—log-file"><span class="toc-number">2.2.3.</span> <span class="toc-text">—log-file</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#几个参数"><span class="toc-number">2.3.</span> <span class="toc-text">几个参数</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#报告解读"><span class="toc-number">2.4.</span> <span class="toc-text">报告解读</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#LEAK_SUMMARY"><span class="toc-number">2.4.1.</span> <span class="toc-text">LEAK SUMMARY</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Memory_leak_detection"><span class="toc-number">2.4.2.</span> <span class="toc-text">Memory leak detection</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#编译器优化"><span class="toc-number">2.5.</span> <span class="toc-text">编译器优化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">3.</span> <span class="toc-text">总结</span></a></li></ol>
+  </div>
+
+<div id="asidepart">
+<div class="closeaside"><a class="closebutton" href="#" title="Hide Sidebar"></a></div>
+<aside class="clearfix">
+
+  
+  <div class="tagcloudlist">
+    <p class="asidetitle">Tag Cloud</p>
+    <div class="tagcloudlist clearfix">
+       <a href="/tags/C++/" style="font-size: 20.00px;">C++</a><a href="/tags/Linux/" style="font-size: 10.00px;">Linux</a><a href="/tags/T1/" style="font-size: 15.00px;">T1</a><a href="/tags/bubble/" style="font-size: 10.00px;">bubble</a><a href="/tags/c++/" style="font-size: 10.00px;">c++</a><a href="/tags/callgrind/" style="font-size: 10.00px;">callgrind</a><a href="/tags/chrome-extension/" style="font-size: 10.00px;">chrome extension</a><a href="/tags/coredumped/" style="font-size: 10.00px;">coredumped</a><a href="/tags/freebase/" style="font-size: 10.00px;">freebase</a><a href="/tags/gdb/" style="font-size: 10.00px;">gdb</a><a href="/tags/git/" style="font-size: 10.00px;">git</a><a href="/tags/gprof2dot/" style="font-size: 10.00px;">gprof2dot</a><a href="/tags/hexo/" style="font-size: 10.00px;">hexo</a><a href="/tags/io/" style="font-size: 10.00px;">io</a><a href="/tags/javascript/" style="font-size: 10.00px;">javascript</a><a href="/tags/js/" style="font-size: 10.00px;">js</a><a href="/tags/leetcode/" style="font-size: 10.00px;">leetcode</a><a href="/tags/linux/" style="font-size: 15.00px;">linux</a><a href="/tags/mac/" style="font-size: 10.00px;">mac</a><a href="/tags/memcheck/" style="font-size: 10.00px;">memcheck</a><a href="/tags/memory-leak/" style="font-size: 10.00px;">memory leak</a><a href="/tags/pacman/" style="font-size: 10.00px;">pacman</a><a href="/tags/permutation/" style="font-size: 10.00px;">permutation</a><a href="/tags/python/" style="font-size: 20.00px;">python</a><a href="/tags/rdbuf/" style="font-size: 10.00px;">rdbuf</a><a href="/tags/smartisan/" style="font-size: 15.00px;">smartisan</a><a href="/tags/svn/" style="font-size: 10.00px;">svn</a><a href="/tags/valgrind/" style="font-size: 15.00px;">valgrind</a><a href="/tags/傻老娘们儿/" style="font-size: 10.00px;">傻老娘们儿</a><a href="/tags/全排列/" style="font-size: 10.00px;">全排列</a><a href="/tags/共享账户/" style="font-size: 10.00px;">共享账户</a><a href="/tags/内存泄漏/" style="font-size: 10.00px;">内存泄漏</a><a href="/tags/南开大学/" style="font-size: 10.00px;">南开大学</a><a href="/tags/小浣熊/" style="font-size: 10.00px;">小浣熊</a><a href="/tags/招远/" style="font-size: 10.00px;">招远</a><a href="/tags/文件共享/" style="font-size: 10.00px;">文件共享</a><a href="/tags/汉字点阵/" style="font-size: 10.00px;">汉字点阵</a><a href="/tags/浪费/" style="font-size: 10.00px;">浪费</a><a href="/tags/罗永浩/" style="font-size: 10.00px;">罗永浩</a><a href="/tags/老罗/" style="font-size: 20.00px;">老罗</a>
+    </div>
+  </div>
+
+
+  
+<div class="categorieslist">
+	<p class="asidetitle">Categories</p>
+		<ul>
+		
+			<li><a href="/categories/linux/C++/" title="C++">C++<sup>2</sup></a></li>
+		
+			<li><a href="/categories/C++/" title="C++">C++<sup>2</sup></a></li>
+		
+			<li><a href="/categories/C++/Linux/" title="Linux">Linux<sup>1</sup></a></li>
+		
+			<li><a href="/categories/fullstack/" title="fullstack">fullstack<sup>2</sup></a></li>
+		
+			<li><a href="/categories/hexo/" title="hexo">hexo<sup>1</sup></a></li>
+		
+			<li><a href="/categories/python/js/" title="js">js<sup>1</sup></a></li>
+		
+			<li><a href="/categories/leetcode/" title="leetcode">leetcode<sup>1</sup></a></li>
+		
+			<li><a href="/categories/linux/" title="linux">linux<sup>2</sup></a></li>
+		
+			<li><a href="/categories/mac/" title="mac">mac<sup>1</sup></a></li>
+		
+			<li><a href="/categories/python/" title="python">python<sup>2</sup></a></li>
+		
+			<li><a href="/categories/leetcode/python/" title="python">python<sup>1</sup></a></li>
+		
+			<li><a href="/categories/python/国哥/" title="国哥">国哥<sup>1</sup></a></li>
+		
+			<li><a href="/categories/碎碎碎碎念/" title="碎碎碎碎念">碎碎碎碎念<sup>9</sup></a></li>
+		
+		</ul>
+</div>
+
+
+  <div class="linkslist" style="margin-top:60px;">
+  <!--p class="asidetitle">Links</p-->
+  <p class="asidetitle">基情链接</p>
+    <ul>
+      <!--li><a href="http://yangjian.me" target="_blank" title="YangJian">Alimon's Blog</a></li>
+      <li><a href="http://hexo.io" target="_blank" title="Hexo">Hexo</a></li-->
+      <li><a href="http://oucg.sinaapp.com/" target="_blank" title="ouchengeng's blog">欧小本的小站</a></li>
+      <li><a href="http://faneshion.github.io/fancy" target="_blank" title="faneshion's blog">范老师不要域名</a></li>
+    </ul>
+</div>
+
+
+  
+  <div class="archiveslist">
+    <p class="asidetitle"><a href="/archives">Archives</a></p>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12">December 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/11">November 2014</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10">October 2014</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09">September 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/08">August 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/07">July 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06">June 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/05">May 2014</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04">April 2014</a><span class="archive-list-count">1</span></li></ul>
+  </div>
+
+
+</aside>
+</div>
+    </div>
+    <footer><div id="footer" >
+	
+	<div class="line">
+		<span></span>
+		<div class="author"></div>
+	</div>
+	
+	
+	<section class="info">
+		<p> It&#39;s not about the salary <br/>
+			It&#39;s all about reality</p>
+	</section>
+	 
+	<div class="social-font clearfix">
+		
+		<a href="http://weibo.com/1394458123" target="_blank" title="weibo"></a>
+		
+		
+		
+		<a href="https://github.com/lisnb" target="_blank" title="github"></a>
+		
+		
+		<a href="https://www.facebook.com/li.lisnb.1" target="_blank" title="facebook"></a>
+		
+		
+	</div>
+		<p class="copyright">Powered by <a href="http://hexo.io" target="_blank" title="hexo">hexo</a> and Theme by <a href="https://github.com/A-limon/pacman" target="_blank" title="Pacman">Pacman</a> © 2014 
+		
+		<a href="http://lixipeng.me" target="_blank" title="lisnb">lisnb</a>
+		
+		</p>
+</div>
+</footer>
+    <!--script src="/js/jquery-2.1.0.min.js"></script--!>
+<script src="http://libs.useso.com/js/jquery/2.1.1/jquery.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.navbar').click(function(){
+    $('header nav').toggleClass('shownav');
+  });
+  var myWidth = 0;
+  function getSize(){
+    if( typeof( window.innerWidth ) == 'number' ) {
+      myWidth = window.innerWidth;
+    } else if( document.documentElement && document.documentElement.clientWidth) {
+      myWidth = document.documentElement.clientWidth;
+    };
+  };
+  var m = $('#main'),
+      a = $('#asidepart'),
+      c = $('.closeaside'),
+      o = $('.openaside');
+  $(window).resize(function(){
+    getSize(); 
+    if (myWidth >= 1024) {
+      $('header nav').removeClass('shownav');
+    }else
+    {
+      m.removeClass('moveMain');
+      a.css('display', 'block').removeClass('fadeOut');
+      o.css('display', 'none');
+      
+      $('#toc.toc-aside').css('display', 'none');
+        
+    }
+  });
+  c.click(function(){
+    a.addClass('fadeOut').css('display', 'none');
+    o.css('display', 'block').addClass('fadeIn');
+    m.addClass('moveMain');
+  });
+  o.click(function(){
+    o.css('display', 'none').removeClass('beforeFadeIn');
+    a.css('display', 'block').removeClass('fadeOut').addClass('fadeIn');      
+    m.removeClass('moveMain');
+  });
+  $(window).scroll(function(){
+    o.css("top",Math.max(80,260-$(this).scrollTop()));
+  });
+});
+</script>
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var ai = $('.article-content>iframe'),
+      ae = $('.article-content>embed'),
+      t  = $('#toc'),
+      h  = $('article h2')
+      ah = $('article h2'),
+      ta = $('#toc.toc-aside'),
+      o  = $('.openaside'),
+      c  = $('.closeaside');
+  if(ai.length>0){
+    ai.wrap('<div class="video-container" />');
+  };
+  if(ae.length>0){
+   ae.wrap('<div class="video-container" />');
+  };
+  if(ah.length==0){
+    t.css('display','none');
+  }else{
+    c.click(function(){
+      ta.css('display', 'block').addClass('fadeIn');
+    });
+    o.click(function(){
+      ta.css('display', 'none');
+    });
+    $(window).scroll(function(){
+      ta.css("top",Math.max(140,320-$(this).scrollTop()));
+    });
+  };
+});
+</script>
+
+
+<script type="text/javascript">
+$(document).ready(function(){ 
+  var $this = $('.share'),
+      url = $this.attr('data-url'),
+      encodedUrl = encodeURIComponent(url),
+      title = $this.attr('data-title'),
+      tsina = $this.attr('data-tsina');
+  var html = [
+  '<a href="#" class="overlay" id="qrcode"></a>',
+  '<div class="qrcode clearfix"><span>扫描二维码分享到微信朋友圈</span><a class="qrclose" href="#share"></a><strong>Loading...Please wait</strong><img id="qrcode-pic" data-src="http://s.jiathis.com/qrcode.php?url=' + encodedUrl + '"/></div>',
+  '<a href="#textlogo" class="article-back-to-top" title="Top"></a>',
+  '<a href="https://www.facebook.com/sharer.php?u=' + encodedUrl + '" class="article-share-facebook" target="_blank" title="Facebook"></a>',
+  '<a href="#qrcode" class="article-share-qrcode" title="QRcode"></a>',
+  '<a href="https://twitter.com/intent/tweet?url=' + encodedUrl + '" class="article-share-twitter" target="_blank" title="Twitter"></a>',
+  '<a href="http://service.weibo.com/share/share.php?title='+title+'&url='+encodedUrl +'&ralateUid='+ tsina +'&searchPic=true&style=number' +'" class="article-share-weibo" target="_blank" title="Weibo"></a>',
+  '<span title="Share to"></span>'
+  ].join('');
+  $this.append(html);
+  $('.article-share-qrcode').click(function(){
+    var imgSrc = $('#qrcode-pic').attr('data-src');
+    $('#qrcode-pic').attr('src', imgSrc);
+    $('#qrcode-pic').load(function(){
+        $('.qrcode strong').text(' ');
+    });
+  });
+});     
+</script>
+
+
+<script type="text/javascript">
+  var duoshuoQuery = {short_name:"lisnb"};
+  (function() {
+    var ds = document.createElement('script');
+    ds.type = 'text/javascript';ds.async = true;
+    ds.src = '//static.duoshuo.com/embed.js';
+    ds.charset = 'UTF-8';
+    (document.getElementsByTagName('head')[0] 
+    || document.getElementsByTagName('body')[0]).appendChild(ds);
+  })();
+</script> 
+
+
+
+<!--link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css"--!>
+<link rel="stylesheet" href="http://libs.useso.com/js/fancybox/2.1.5/jquery.fancybox.min.css" media="screen" type="text/css">
+<!--script src="/fancybox/jquery.fancybox.pack.js"></script--!>
+<script src="http://libs.useso.com/js/fancybox/2.1.5/jquery.fancybox.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){ 
+  $('.article-content').each(function(i){
+    $(this).find('img').each(function(){
+      if ($(this).parent().hasClass('fancybox')) return;
+      var alt = this.alt;
+      if (alt) $(this).after('<span class="caption">' + alt + '</span>');
+      $(this).wrap('<a href="' + this.src + '" title="' + alt + '" class="fancybox"></a>');
+    });
+    $(this).find('.fancybox').each(function(){
+      $(this).attr('rel', 'article' + i);
+    });
+  });
+  if($.fancybox){
+    $('.fancybox').fancybox();
+  }
+}); 
+</script>
+
+
+
+  </body>
+</html>
