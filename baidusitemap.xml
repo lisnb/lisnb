@@ -3,6 +3,35 @@
 
     
   <url>
+    <loc>http://lixipeng.me/2014/10/26/tu-toc/</loc>
+    <lastmod>2015-02-15T02:14:20.000Z</lastmod>
+    <data>
+        <display>
+        <title>tu-toc</title>
+        <content><![CDATA[<p><audio src="/audio/rtn.mp3" preload="auto" autoplay loop controls></audio></p>
+<h1 id="alpha">alpha</h1>
+<h2 id="bravo">bravo</h2>
+<h3 id="charlie">charlie</h3>
+<h3 id="delta">delta</h3>
+<h2 id="echo">echo</h2>
+<h2 id="foxtrot">foxtrot</h2>
+<h3 id="golf">golf</h3>
+<h2 id="hotel">hotel</h2>
+<h1 id="india">india</h1>
+<p><em>nihao</em></p>
+<h2 id="nihao"><strong>nihao</strong></h2>
+]]></content>
+        
+         
+        <pubTime>2014-10-26T14:28:22.000Z</pubTime>
+         
+           
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
     <loc>http://lixipeng.me/2014/10/31/memory-leak/</loc>
     <lastmod>2014-12-19T12:39:53.000Z</lastmod>
     <data>
@@ -276,33 +305,6 @@ valgrind --leak-check=yes libido arg2 <span class="keyword">...</span> &amp;&gt;
     </url>
 
     
-    
-  <url>
-    <loc>http://lixipeng.me/2014/10/26/tu-toc/</loc>
-    <lastmod>2014-11-03T07:35:08.000Z</lastmod>
-    <data>
-        <display>
-        <title>tu-toc</title>
-        <content><![CDATA[<p><audio src="/audio/rtn.mp3" preload="auto" autoplay loop controls></audio></p>
-<h1 id="alpha">alpha</h1>
-<h2 id="bravo">bravo</h2>
-<h3 id="charlie">charlie</h3>
-<h3 id="delta">delta</h3>
-<h2 id="echo">echo</h2>
-<h2 id="foxtrot">foxtrot</h2>
-<h3 id="golf">golf</h3>
-<h2 id="hotel">hotel</h2>
-<h1 id="india">india</h1>
-]]></content>
-        
-         
-        <pubTime>2014-10-26T14:28:22.000Z</pubTime>
-         
-           
-        </display>
-    </data>
-    </url>
-
     
   <url>
     <loc>http://lixipeng.me/2014/11/03/cpp-performance/</loc>
@@ -813,65 +815,6 @@ valgrind --leak-check=yes libido arg2 <span class="keyword">...</span> &amp;&gt;
 
     
   <url>
-    <loc>http://lixipeng.me/2014/05/14/%E7%A1%9D%E9%85%B8%E5%92%AA%E5%BA%B7%E5%94%91%E6%95%A3/</loc>
-    <lastmod>2014-06-25T02:53:00.000Z</lastmod>
-    <data>
-        <display>
-        <title>硝酸咪康唑散</title>
-        <content><![CDATA[<blockquote>
-<p>这烧烤羊肉串儿吃的我想吐，非常想吐。怎么这么大一股膻味，你是不是真的用羊肉了？说好的猪肉刷羊油呢？无良商家，差评。<br>还是… 猪肉刷羊油才是这个味道… o(╯□╰)o<br>那也刷尼玛太多了吧摔！</p>
-</blockquote>
-<a id="more"></a>
-
-<h5 id="下面开始流水账">下面开始流水账</h5>
-<p><strong>大数据、博弈论还有应用多元统计分析结课</strong></p>
-<p>其中呢，大数据还有个大作业，博弈论还有个课程论文。<br>说到大数据的大作业我真是不得不吐槽几句，算了，一句得了：女生有点靠不住啊。咱们默认都用阿里巴巴的那个对吧，咱们组一共有五个队，你自己也在做，突然你说不想用这个，然后搬出助教压我们对吧，不厚道是吧，主要是你自己还不想做，然后还想用别人的毕设交上去。我跟你说一个女生从女神堕落到不是女神都是一瞬间的事你信不信？<br>大数据老师还是很牛逼的，感觉是见过世面的人，感觉必须得这么评价了。你觉得他好像啥都不懂，我跟你说人家学物理的数学功底那是好的一逼。到最后绝对是听不懂了，必须得磊落的承认这一点了<br>应用多元统计分析，老师是好老师，这个就不多说了，直接引用课程论文的致谢部分：</p>
-<blockquote>
-<p>其实这并不能算一篇严格意义上的论文，尽管我花在这个上面的时间并不少。<br>我非常感谢李娜老师，给我一学期的感动。<br>尽管老师自己说是刚开始在科院讲课，尽管相比老老师，新老师通常会更用心的准备，但李娜老师还是给了我很大的感动。我相信所有的同学们都会这样想。<br>我们上课的人不多，但老师还是备课备的非常充分，上课的时候也非常认真，从来都是一说就说两节课。说实话，这一学期老师讲的东西能听懂的并不是很多，但总是觉得不听特别不好意思… 所以每次都只能眼睛直勾勾的盯着黑板，尽量多听懂一些。<br>然后… 希望老师的宝宝能够健康，我觉得很幸运能跟他一起听了一学期的课，我估计他能记住的都比我要多… 嘻嘻<br>然后感谢小基友<a href="http://weibo.com/ouchengeng" target="_blank" rel="external">@欧陈_kop</a>，周二我们两个11节课都在一块，诶… 完全的审美疲劳… </p>
-</blockquote>
-<p>最后老师给回邮件的时候：<br><img src="/img/0514/mail.png" alt="嘻嘻"></p>
-<p>我想说的是：</p>
-<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">老师你是我导师派过来劝我读博的吗！</div></pre></td></tr></table></figure>
-
-<p>博弈论博弈论博弈论，感觉这绝对是个坑。就是被耶鲁大学的那个公开课给骗了，感觉完全不同，必须的得这么说了。也不好说老师的坏话是吧，不过这个微信群确实闹的我有点蛋疼，同学们你们赞美老师真的是发自内心的吗？是我的觉悟还不够高？必须得这么解释了，你说是不是这个道理。最后讲的东西和耶鲁大学那个老师讲的差不多，但课程极其枯燥无味，感觉必须得这么评价了。反正不喜欢。<br>最后的课程论文，准备研究一下“人计算”，NetLogo的代码已经写好了，不过感觉需要改一下，到时候会把渣代码po出来，人家这个也是个技术博客好吗！</p>
-<p><em>不想写了，今天先到这吧… </em></p>
-]]></content>
-        
-         
-        <pubTime>2014-05-14T15:55:29.000Z</pubTime>
-         
-           
-             
-              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
-    <loc>http://lixipeng.me/2014/04/29/%E9%B9%8F%E5%AE%9D%E7%9A%84%E6%96%B0%E5%AE%B6/</loc>
-    <lastmod>2014-06-25T02:53:00.000Z</lastmod>
-    <data>
-        <display>
-        <title>鹏宝的新家</title>
-        <content><![CDATA[<p>终于如愿以偿，弄了一个<br>不知道能不能用到，能用多久<br>下一步就是学学markdown怎么用啦</p>
-<p>这一刻和你分享~</p>
-]]></content>
-        
-         
-        <pubTime>2014-04-29T14:43:35.000Z</pubTime>
-         
-           
-             
-              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
-          
-        </display>
-    </data>
-    </url>
-
-    
-  <url>
     <loc>http://lixipeng.me/2014/06/21/bubbles-bling-bling/</loc>
     <lastmod>2014-06-25T02:53:00.000Z</lastmod>
     <data>
@@ -935,6 +878,64 @@ valgrind --leak-check=yes libido arg2 <span class="keyword">...</span> &amp;&gt;
     </url>
 
     
+  <url>
+    <loc>http://lixipeng.me/2014/05/14/%E7%A1%9D%E9%85%B8%E5%92%AA%E5%BA%B7%E5%94%91%E6%95%A3/</loc>
+    <lastmod>2014-06-25T02:53:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>硝酸咪康唑散</title>
+        <content><![CDATA[<blockquote>
+<p>这烧烤羊肉串儿吃的我想吐，非常想吐。怎么这么大一股膻味，你是不是真的用羊肉了？说好的猪肉刷羊油呢？无良商家，差评。<br>还是… 猪肉刷羊油才是这个味道… o(╯□╰)o<br>那也刷尼玛太多了吧摔！</p>
+</blockquote>
+<a id="more"></a>
+
+<h5 id="下面开始流水账">下面开始流水账</h5>
+<p><strong>大数据、博弈论还有应用多元统计分析结课</strong></p>
+<p>其中呢，大数据还有个大作业，博弈论还有个课程论文。<br>说到大数据的大作业我真是不得不吐槽几句，算了，一句得了：女生有点靠不住啊。咱们默认都用阿里巴巴的那个对吧，咱们组一共有五个队，你自己也在做，突然你说不想用这个，然后搬出助教压我们对吧，不厚道是吧，主要是你自己还不想做，然后还想用别人的毕设交上去。我跟你说一个女生从女神堕落到不是女神都是一瞬间的事你信不信？<br>大数据老师还是很牛逼的，感觉是见过世面的人，感觉必须得这么评价了。你觉得他好像啥都不懂，我跟你说人家学物理的数学功底那是好的一逼。到最后绝对是听不懂了，必须得磊落的承认这一点了<br>应用多元统计分析，老师是好老师，这个就不多说了，直接引用课程论文的致谢部分：</p>
+<blockquote>
+<p>其实这并不能算一篇严格意义上的论文，尽管我花在这个上面的时间并不少。<br>我非常感谢李娜老师，给我一学期的感动。<br>尽管老师自己说是刚开始在科院讲课，尽管相比老老师，新老师通常会更用心的准备，但李娜老师还是给了我很大的感动。我相信所有的同学们都会这样想。<br>我们上课的人不多，但老师还是备课备的非常充分，上课的时候也非常认真，从来都是一说就说两节课。说实话，这一学期老师讲的东西能听懂的并不是很多，但总是觉得不听特别不好意思… 所以每次都只能眼睛直勾勾的盯着黑板，尽量多听懂一些。<br>然后… 希望老师的宝宝能够健康，我觉得很幸运能跟他一起听了一学期的课，我估计他能记住的都比我要多… 嘻嘻<br>然后感谢小基友<a href="http://weibo.com/ouchengeng" target="_blank" rel="external">@欧陈_kop</a>，周二我们两个11节课都在一块，诶… 完全的审美疲劳… </p>
+</blockquote>
+<p>最后老师给回邮件的时候：<br><img src="/img/0514/mail.png" alt="嘻嘻"></p>
+<p>我想说的是：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">老师你是我导师派过来劝我读博的吗！</div></pre></td></tr></table></figure>
+
+<p>博弈论博弈论博弈论，感觉这绝对是个坑。就是被耶鲁大学的那个公开课给骗了，感觉完全不同，必须的得这么说了。也不好说老师的坏话是吧，不过这个微信群确实闹的我有点蛋疼，同学们你们赞美老师真的是发自内心的吗？是我的觉悟还不够高？必须得这么解释了，你说是不是这个道理。最后讲的东西和耶鲁大学那个老师讲的差不多，但课程极其枯燥无味，感觉必须得这么评价了。反正不喜欢。<br>最后的课程论文，准备研究一下“人计算”，NetLogo的代码已经写好了，不过感觉需要改一下，到时候会把渣代码po出来，人家这个也是个技术博客好吗！</p>
+<p><em>不想写了，今天先到这吧… </em></p>
+]]></content>
+        
+         
+        <pubTime>2014-05-14T15:55:29.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://lixipeng.me/2014/04/29/%E9%B9%8F%E5%AE%9D%E7%9A%84%E6%96%B0%E5%AE%B6/</loc>
+    <lastmod>2014-06-25T02:53:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>鹏宝的新家</title>
+        <content><![CDATA[<p>终于如愿以偿，弄了一个<br>不知道能不能用到，能用多久<br>下一步就是学学markdown怎么用啦</p>
+<p>这一刻和你分享~</p>
+]]></content>
+        
+         
+        <pubTime>2014-04-29T14:43:35.000Z</pubTime>
+         
+           
+             
+              <breadCrumb title="碎碎碎碎念" url="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
+          
+        </display>
+    </data>
+    </url>
+
     
     
   <url>
@@ -978,5 +979,6 @@ valgrind --leak-check=yes libido arg2 <span class="keyword">...</span> &amp;&gt;
     </data>
     </url>
 
+    
     
 </urlset>
