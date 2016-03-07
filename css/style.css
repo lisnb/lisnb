@@ -145,7 +145,7 @@ a:focus {
     margin: 0;
     color: #555;
     text-align: left;
-    font: bold 25px/1.1 "ff-tisa-web-pro", Cambria, "Times New Roman", Georgia, Times, sans-serif; }
+    font: bold 25px/1.1 "ff-tisa-web-pro", "Helvetica Neue",Cambria, "Times New Roman", Georgia, Times, sans-serif; }
     .post .post-title a {
       color: #555; }
   .post .post-meta {
@@ -324,7 +324,7 @@ a:focus {
   padding-bottom: .8em; }
   .post-archive h2 {
     margin: 0;
-    font: bold 25px / 1.1 "ff-tisa-web-pro", Cambria, "Times New Roman", Georgia, Times, sans-serif; }
+    font: bold 25px / 1.1 "ff-tisa-web-pro", "Helvetica Neue", Cambria, "Times New Roman", Georgia, Times, sans-serif; }
   .post-archive .date {
     padding-right: .7em; }
 
@@ -644,7 +644,7 @@ figure.highlight {
   figure.highlight .code,
   figure.highlight .tag {
     background-color: inherit;
-    font-family: Menlo;
+    font-family: Menlo, "Courier New", mongospace;
     border: none;
     padding: 0;
     margin: 0;
@@ -1109,7 +1109,6 @@ figure.highlight {
   .post-nav a {
     display: inline-block;
     line-height: 25px;
-    font-family: "TIBch", "Classic Grotesque W01", "Helvetica Neue", Arial, "Hiragino Sans GB", "STHeiti", "Microsoft YaHei", "WenQuanYi Micro Hei", SimSun, sans-serif;
     font-size: 15px;
     color: #555;
     border-bottom: none;
