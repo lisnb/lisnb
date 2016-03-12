@@ -2,6 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://lixipeng.me/2016-03/strptime-thread-not-safe/</loc>
+    
+    <lastmod>2016-03-12T15:20:12.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://lixipeng.me/2014-12/stdiosrdbuf/</loc>
+    
+    <lastmod>2016-03-09T01:52:10.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://lixipeng.me/2014-06/bubbles-bling-bling/</loc>
     
     <lastmod>2016-03-06T15:13:22.000Z</lastmod>
@@ -9,7 +23,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/tags/index.html</loc>
+    <loc>http://lixipeng.me/2014-06/gdb-coredumped/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -23,14 +37,21 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-11/cpp-performance/</loc>
+    <loc>http://lixipeng.me/2014-10/malaoluo/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-06/gdb-coredumped/</loc>
+    <loc>http://lixipeng.me/jquery/index.html</loc>
+    
+    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://lixipeng.me/2014-11/cpp-performance/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -44,20 +65,6 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-10/malaoluo/</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://lixipeng.me/2014-10/memory-leak/</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://lixipeng.me/2014-09/chrome-extension-noweibo/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
@@ -65,7 +72,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-12/stdiosrdbuf/</loc>
+    <loc>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -107,14 +114,14 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/jquery/index.html</loc>
+    <loc>http://lixipeng.me/tags/index.html</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</loc>
+    <loc>http://lixipeng.me/2014-10/memory-leak/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
