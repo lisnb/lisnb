@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://lixipeng.me/2016-03/first-r-script/</loc>
+    
+    <lastmod>2016-03-15T10:43:36.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://lixipeng.me/2016-03/strptime-thread-not-safe/</loc>
     
     <lastmod>2016-03-12T15:20:12.000Z</lastmod>
@@ -23,42 +30,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-06/gdb-coredumped/</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://lixipeng.me/2014-11/intro-to-git/</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://lixipeng.me/2014-10/malaoluo/</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://lixipeng.me/jquery/index.html</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://lixipeng.me/2014-11/cpp-performance/</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://lixipeng.me/2014-10/mac-file-share/</loc>
+    <loc>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -72,7 +44,28 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</loc>
+    <loc>http://lixipeng.me/2014-10/mac-file-share/</loc>
+    
+    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://lixipeng.me/2014-10/malaoluo/</loc>
+    
+    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://lixipeng.me/2014-11/cpp-performance/</loc>
+    
+    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://lixipeng.me/2014-06/gdb-coredumped/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -86,7 +79,14 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-08/xiaoqiujunan/</loc>
+    <loc>http://lixipeng.me/2014-11/intro-to-git/</loc>
+    
+    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://lixipeng.me/2014-10/memory-leak/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -100,7 +100,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/about/index.html</loc>
+    <loc>http://lixipeng.me/2014-08/xiaoqiujunan/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -114,14 +114,21 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/tags/index.html</loc>
+    <loc>http://lixipeng.me/about/index.html</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-10/memory-leak/</loc>
+    <loc>http://lixipeng.me/jquery/index.html</loc>
+    
+    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://lixipeng.me/tags/index.html</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
