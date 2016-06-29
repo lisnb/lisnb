@@ -44,8 +44,10 @@ int main()
 [cplusplus](http://www.cplusplus/reference/ios/ios/rdbuf)有详细介绍。
 rdbuf(std::ios::rdbuf)，来自头文件 ios 和 iostream. 是一个重载了的函数。
 
-	get(1)	streambuf *rdbuf() const;
-	set(2)	streambuf *rdbuf(streambuf *sb);
+```
+get(1)	streambuf *rdbuf() const;
+set(2)	streambuf *rdbuf(streambuf *sb);
+```
 	
 第一种形式，用来返回指向该流当前关联的流缓冲区对象（*stream buffer*），第二种形式用来将当前流关联到*sb*指向的流换中去对象上，并且清空所有的错误状态。
 如果*sb*是一个空指针*null pointer*，这个函数会自动将badbit置位，有可能触发异常。
