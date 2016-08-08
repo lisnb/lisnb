@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://lixipeng.me/"/>
-  <updated>2016-06-29T06:27:31.000Z</updated>
+  <updated>2016-08-08T14:53:24.000Z</updated>
   <id>http://lixipeng.me/</id>
   
   <author>
@@ -14,6 +14,33 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>手贱</title>
+    <link href="http://lixipeng.me/2016-08/color-ui/"/>
+    <id>http://lixipeng.me/2016-08/color-ui/</id>
+    <published>2016-08-08T14:42:48.000Z</published>
+    <updated>2016-08-08T14:53:24.000Z</updated>
+    
+    <content type="html">&lt;p&gt;手贱。&lt;br&gt;前几天乱翻wiki的时候看到git一节，里面说，可以通过设置&lt;code&gt;color.ui=always&lt;/code&gt;把输出弄的美美的。&lt;br&gt;&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;&lt;br&gt;提交代码是用一个组里人写的python脚本，然后今天晚上提交代码的时候，就怎么都提交不了，显示&lt;code&gt;git diff&lt;/code&gt;没有内容，但我明明有内容。&lt;br&gt;于是我就去那个upload.py的脚本里去看，里面是parse &lt;code&gt;git diff&lt;/code&gt; 命令的输出，然后找到你做更改的地方，我就打印出来，发现每一行前后都有一些什么&lt;code&gt;\x1bm[&lt;/code&gt;什么的，看起来是跟终端输出的时候文字的颜色有关，我以为是我.bashrc里修改了PS1导致的，所以就改回去，发现还不行。&lt;br&gt;后来尝试在那个脚本里修改一下，把每行的前后都strip掉刚刚那个字符串，可以提交了，但是提交的内容看不了，所以可能diff出来的每行前后不都是那个字符串。况且我的.bashrc已经返璞归真了，应该跟我的环境没有关系了。&lt;br&gt;无意识的&lt;code&gt;git config --list&lt;/code&gt;了一下，发现了&lt;code&gt;color.ui=always&lt;/code&gt;，恍然大悟，&lt;code&gt;git config --global color.ui no&lt;/code&gt;，然后就好了。白白搞了一个多小时。&lt;br&gt;手贱。&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;今天简直糟透了，不过还是要恭喜标宝~ 为你感到开心~ &lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;手贱。&lt;br&gt;前几天乱翻wiki的时候看到git一节，里面说，可以通过设置&lt;code&gt;color.ui=always&lt;/code&gt;把输出弄的美美的。&lt;br&gt;
+    
+    </summary>
+    
+      <category term="git" scheme="http://lixipeng.me/categories/git/"/>
+    
+    
+      <category term="git" scheme="http://lixipeng.me/tags/git/"/>
+    
+      <category term="config" scheme="http://lixipeng.me/tags/config/"/>
+    
+  </entry>
   
   <entry>
     <title>为你感到骄傲</title>
@@ -469,11 +496,11 @@ valgrind --leak-check=yes libido arg2 ... &amp;amp;&amp;gt; memleak.report.1
       <category term="Linux" scheme="http://lixipeng.me/categories/C/Linux/"/>
     
     
-      <category term="linux" scheme="http://lixipeng.me/tags/linux/"/>
-    
       <category term="C++" scheme="http://lixipeng.me/tags/C/"/>
     
       <category term="valgrind" scheme="http://lixipeng.me/tags/valgrind/"/>
+    
+      <category term="linux" scheme="http://lixipeng.me/tags/linux/"/>
     
       <category term="内存泄漏" scheme="http://lixipeng.me/tags/%E5%86%85%E5%AD%98%E6%B3%84%E6%BC%8F/"/>
     
@@ -731,11 +758,11 @@ valgrind --leak-check=yes libido arg2 ... &amp;amp;&amp;gt; memleak.report.1
       <category term="C++" scheme="http://lixipeng.me/categories/linux/C/"/>
     
     
+      <category term="C++" scheme="http://lixipeng.me/tags/C/"/>
+    
       <category term="linux" scheme="http://lixipeng.me/tags/linux/"/>
     
       <category term="gdb" scheme="http://lixipeng.me/tags/gdb/"/>
-    
-      <category term="C++" scheme="http://lixipeng.me/tags/C/"/>
     
       <category term="coredumped" scheme="http://lixipeng.me/tags/coredumped/"/>
     

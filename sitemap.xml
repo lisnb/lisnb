@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://lixipeng.me/2016-08/color-ui/</loc>
+    
+    <lastmod>2016-08-08T14:53:24.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://lixipeng.me/2016-06/proud/</loc>
     
     <lastmod>2016-06-29T06:27:31.000Z</lastmod>
@@ -37,7 +44,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-10/memory-leak/</loc>
+    <loc>http://lixipeng.me/2014-11/intro-to-git/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -51,14 +58,21 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-09/chrome-extension-noweibo/</loc>
+    <loc>http://lixipeng.me/2014-10/malaoluo/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-10/malaoluo/</loc>
+    <loc>http://lixipeng.me/2014-10/memory-leak/</loc>
+    
+    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://lixipeng.me/2014-09/chrome-extension-noweibo/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -72,6 +86,13 @@
   </url>
   
   <url>
+    <loc>http://lixipeng.me/tags/index.html</loc>
+    
+    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://lixipeng.me/2014-06/gdb-coredumped/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
@@ -79,21 +100,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://lixipeng.me/2014-11/intro-to-git/</loc>
-    
-    <lastmod>2016-03-06T06:44:29.000Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://lixipeng.me/2014-05/%E7%A1%9D%E9%85%B8%E5%92%AA%E5%BA%B7%E5%94%91%E6%95%A3/</loc>
+    <loc>http://lixipeng.me/2014-09/xiangnian/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -107,7 +114,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-09/xiangnian/</loc>
+    <loc>http://lixipeng.me/2014-05/%E7%A1%9D%E9%85%B8%E5%92%AA%E5%BA%B7%E5%94%91%E6%95%A3/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -135,7 +142,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/tags/index.html</loc>
+    <loc>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
