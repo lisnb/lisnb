@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://lixipeng.me/"/>
-  <updated>2016-08-08T14:53:24.000Z</updated>
+  <updated>2017-04-17T15:07:04.000Z</updated>
   <id>http://lixipeng.me/</id>
   
   <author>
@@ -14,6 +14,60 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>一种进行JSON字段校验的方法[1]</title>
+    <link href="http://lixipeng.me/2017-04/json-validation/"/>
+    <id>http://lixipeng.me/2017-04/json-validation/</id>
+    <published>2017-04-17T13:47:38.000Z</published>
+    <updated>2017-04-17T15:07:04.000Z</updated>
+    
+    <content type="html">&lt;p&gt;如果一个服务器是以JSON这种形式来返回结果，那在某些情况，我们希望在返回前对结果进行校验，确定某些重要的字段在合法的范围或者符合其他的一些什么条件（而并不是校验这个JSON字符串是不是符合JSON的语法规则，比如少了一个引号等），本文会介绍一种使用C++实现的对JSON字段进行校验的方法。本文基于&lt;a href=&quot;https://github.com/open-source-parsers/jsoncpp&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;jsoncpp&lt;/a&gt;来实现。&lt;/p&gt;
+&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;
+&lt;h3 id=&quot;例子&quot;&gt;&lt;a href=&quot;#例子&quot; class=&quot;headerlink&quot; title=&quot;例子&quot;&gt;&lt;/a&gt;例子&lt;/h3&gt;&lt;p&gt;作为例子，假设服务器返回的结果是如下的结构：&lt;/p&gt;
+&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;quot;charlie&amp;quot;: -1,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;quot;delta&amp;quot;: 4.2,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;quot;foxtrot&amp;quot;: false,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;quot;golf&amp;quot;: &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;quot;hotel&amp;quot;: &amp;quot;india&amp;quot;,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;quot;july&amp;quot;: [&amp;quot;kilo&amp;quot;, &amp;quot;lima&amp;quot;, &amp;quot;mike&amp;quot;],&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;quot;november&amp;quot;: &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;quot;oscar&amp;quot;: &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &amp;quot;papa&amp;quot;: null&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&amp;#125;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;上述结构基本涵盖了JSON能够表达的所有类型：整数、浮点、布尔、字符串、数组、null和键值的嵌套，也就是对象。&lt;br&gt;假设我们对最后的结果的要求是这样的：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;charlie&lt;/code&gt;大于0且小于10&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;delta&lt;/code&gt;是浮点型&lt;/li&gt;
+&lt;li&gt;“mike”在&lt;code&gt;july&lt;/code&gt;中&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&quot;为么要校验JSON&quot;&gt;&lt;a href=&quot;#为么要校验JSON&quot; class=&quot;headerlink&quot; title=&quot;为么要校验JSON&quot;&gt;&lt;/a&gt;为么要校验JSON&lt;/h3&gt;&lt;p&gt;如果服务端是使用node或者python这种弱类型的语言，这个结果可能是由一个object或者是一个dict序列化出来的，但是因为C++是强类型语言，所以服务端在返回这个结果时，大多数都是通过将一个类（假设这个类叫做Bravo）的实例（bravo）的成员一个一个的赋值给一个JsonValue的实例（json_bravo)，再序列化这个json_bravo来完成。如果最终的返回结果非法，那有两种可能：1、本来bravo中的数据就是错的，bravo.charlie应该大于0；2、在将bravo.charlie写到json_bravo的时候，调用了to_string方法，把一个整形变量写成了字符串。返回的JSON结果中，如果出现了变量类型不对的情况，基本上都是由于上述的第二种原因导致的。这也是为什么在做返回结果的校验时，校验json_bravo，而不是bravo，因为jsoncpp对JsonValue的序列化过程我们认为是可靠的（当然有时也是不可靠的，后面会详细说明）。&lt;/p&gt;
+&lt;h3 id=&quot;校验器要考虑的问题&quot;&gt;&lt;a href=&quot;#校验器要考虑的问题&quot; class=&quot;headerlink&quot; title=&quot;校验器要考虑的问题&quot;&gt;&lt;/a&gt;校验器要考虑的问题&lt;/h3&gt;&lt;p&gt;要做好校验工作，校验器至少需要实现以下功能：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;检查某个字段是否存在；&lt;/li&gt;
+&lt;li&gt;检查某个字段是否符合某些条件，如：&lt;ul&gt;
+&lt;li&gt;是否是特定的类型，如：布尔，整形等；&lt;/li&gt;
+&lt;li&gt;是否在某个特定范围内&lt;/li&gt;
+&lt;li&gt;是否满足其他特定的需要&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;能够处理嵌套，比如检查例子中&lt;code&gt;papa&lt;/code&gt;这个字段&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;达到以上目的，那算是基本完成了任务，实现起来并不难，但在这个基础上，我们不禁会想，可不可以提供一些更贴心的功能，比如：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;上述的三个条件只要满足一个就可以；&lt;/li&gt;
+&lt;li&gt;修改校验条件的时候可以不修改代码；&lt;/li&gt;
+&lt;li&gt;在写UT时可以非常简单；&lt;/li&gt;
+&lt;li&gt;不要重载（因为需要判断不同类型的数据）和继承等等复杂的编码；&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;那一个什么样的校验器能够满足这些诉求呢？&lt;/p&gt;
+</content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;如果一个服务器是以JSON这种形式来返回结果，那在某些情况，我们希望在返回前对结果进行校验，确定某些重要的字段在合法的范围或者符合其他的一些什么条件（而并不是校验这个JSON字符串是不是符合JSON的语法规则，比如少了一个引号等），本文会介绍一种使用C++实现的对JSON字段进行校验的方法。本文基于&lt;a href=&quot;https://github.com/open-source-parsers/jsoncpp&quot;&gt;jsoncpp&lt;/a&gt;来实现。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="C++" scheme="http://lixipeng.me/categories/C/"/>
+    
+    
+      <category term="json" scheme="http://lixipeng.me/tags/json/"/>
+    
+      <category term="validation" scheme="http://lixipeng.me/tags/validation/"/>
+    
+  </entry>
   
   <entry>
     <title>手贱</title>

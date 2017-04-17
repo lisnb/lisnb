@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://lixipeng.me/2017-04/json-validation/</loc>
+    
+    <lastmod>2017-04-17T15:07:04.000Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://lixipeng.me/2016-08/color-ui/</loc>
     
     <lastmod>2016-08-08T14:53:24.000Z</lastmod>
@@ -44,7 +51,7 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-11/intro-to-git/</loc>
+    <loc>http://lixipeng.me/2014-11/cpp-performance/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -58,14 +65,14 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-10/malaoluo/</loc>
+    <loc>http://lixipeng.me/2014-10/memory-leak/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-10/memory-leak/</loc>
+    <loc>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -79,14 +86,14 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-11/cpp-performance/</loc>
+    <loc>http://lixipeng.me/2014-10/malaoluo/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://lixipeng.me/tags/index.html</loc>
+    <loc>http://lixipeng.me/2014-11/intro-to-git/</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
@@ -135,14 +142,14 @@
   </url>
   
   <url>
-    <loc>http://lixipeng.me/jquery/index.html</loc>
+    <loc>http://lixipeng.me/tags/index.html</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</loc>
+    <loc>http://lixipeng.me/jquery/index.html</loc>
     
     <lastmod>2016-03-06T06:44:29.000Z</lastmod>
     
