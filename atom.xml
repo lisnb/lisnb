@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://lixipeng.me/"/>
-  <updated>2017-04-17T15:07:04.000Z</updated>
+  <updated>2016-08-08T14:53:24.000Z</updated>
   <id>http://lixipeng.me/</id>
   
   <author>
@@ -14,60 +14,6 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
-  
-  <entry>
-    <title>一种进行JSON字段校验的方法[1]</title>
-    <link href="http://lixipeng.me/2017-04/json-validation/"/>
-    <id>http://lixipeng.me/2017-04/json-validation/</id>
-    <published>2017-04-17T13:47:38.000Z</published>
-    <updated>2017-04-17T15:07:04.000Z</updated>
-    
-    <content type="html">&lt;p&gt;如果一个服务器是以JSON这种形式来返回结果，那在某些情况，我们希望在返回前对结果进行校验，确定某些重要的字段在合法的范围或者符合其他的一些什么条件（而并不是校验这个JSON字符串是不是符合JSON的语法规则，比如少了一个引号等），本文会介绍一种使用C++实现的对JSON字段进行校验的方法。本文基于&lt;a href=&quot;https://github.com/open-source-parsers/jsoncpp&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;jsoncpp&lt;/a&gt;来实现。&lt;/p&gt;
-&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;
-&lt;h3 id=&quot;例子&quot;&gt;&lt;a href=&quot;#例子&quot; class=&quot;headerlink&quot; title=&quot;例子&quot;&gt;&lt;/a&gt;例子&lt;/h3&gt;&lt;p&gt;作为例子，假设服务器返回的结果是如下的结构：&lt;/p&gt;
-&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;3&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;4&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;5&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;6&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;7&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;8&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;9&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;10&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;11&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;12&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;13&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;14&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;&amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;quot;charlie&amp;quot;: -1,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;quot;delta&amp;quot;: 4.2,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;quot;foxtrot&amp;quot;: false,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;quot;golf&amp;quot;: &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;quot;hotel&amp;quot;: &amp;quot;india&amp;quot;,&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;quot;july&amp;quot;: [&amp;quot;kilo&amp;quot;, &amp;quot;lima&amp;quot;, &amp;quot;mike&amp;quot;],&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;quot;november&amp;quot;: &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;quot;oscar&amp;quot;: &amp;#123;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;        &amp;quot;papa&amp;quot;: null&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;      &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;    &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;  &amp;#125;&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;&amp;#125;&lt;/span&gt;&lt;br&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
-&lt;p&gt;上述结构基本涵盖了JSON能够表达的所有类型：整数、浮点、布尔、字符串、数组、null和键值的嵌套，也就是对象。&lt;br&gt;假设我们对最后的结果的要求是这样的：&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;charlie&lt;/code&gt;大于0且小于10&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;delta&lt;/code&gt;是浮点型&lt;/li&gt;
-&lt;li&gt;“mike”在&lt;code&gt;july&lt;/code&gt;中&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h3 id=&quot;为么要校验JSON&quot;&gt;&lt;a href=&quot;#为么要校验JSON&quot; class=&quot;headerlink&quot; title=&quot;为么要校验JSON&quot;&gt;&lt;/a&gt;为么要校验JSON&lt;/h3&gt;&lt;p&gt;如果服务端是使用node或者python这种弱类型的语言，这个结果可能是由一个object或者是一个dict序列化出来的，但是因为C++是强类型语言，所以服务端在返回这个结果时，大多数都是通过将一个类（假设这个类叫做Bravo）的实例（bravo）的成员一个一个的赋值给一个JsonValue的实例（json_bravo)，再序列化这个json_bravo来完成。如果最终的返回结果非法，那有两种可能：1、本来bravo中的数据就是错的，bravo.charlie应该大于0；2、在将bravo.charlie写到json_bravo的时候，调用了to_string方法，把一个整形变量写成了字符串。返回的JSON结果中，如果出现了变量类型不对的情况，基本上都是由于上述的第二种原因导致的。这也是为什么在做返回结果的校验时，校验json_bravo，而不是bravo，因为jsoncpp对JsonValue的序列化过程我们认为是可靠的（当然有时也是不可靠的，后面会详细说明）。&lt;/p&gt;
-&lt;h3 id=&quot;校验器要考虑的问题&quot;&gt;&lt;a href=&quot;#校验器要考虑的问题&quot; class=&quot;headerlink&quot; title=&quot;校验器要考虑的问题&quot;&gt;&lt;/a&gt;校验器要考虑的问题&lt;/h3&gt;&lt;p&gt;要做好校验工作，校验器至少需要实现以下功能：&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;检查某个字段是否存在；&lt;/li&gt;
-&lt;li&gt;检查某个字段是否符合某些条件，如：&lt;ul&gt;
-&lt;li&gt;是否是特定的类型，如：布尔，整形等；&lt;/li&gt;
-&lt;li&gt;是否在某个特定范围内&lt;/li&gt;
-&lt;li&gt;是否满足其他特定的需要&lt;/li&gt;
-&lt;/ul&gt;
-&lt;/li&gt;
-&lt;li&gt;能够处理嵌套，比如检查例子中&lt;code&gt;papa&lt;/code&gt;这个字段&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;达到以上目的，那算是基本完成了任务，实现起来并不难，但在这个基础上，我们不禁会想，可不可以提供一些更贴心的功能，比如：&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;上述的三个条件只要满足一个就可以；&lt;/li&gt;
-&lt;li&gt;修改校验条件的时候可以不修改代码；&lt;/li&gt;
-&lt;li&gt;在写UT时可以非常简单；&lt;/li&gt;
-&lt;li&gt;不要重载（因为需要判断不同类型的数据）和继承等等复杂的编码；&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;那一个什么样的校验器能够满足这些诉求呢？&lt;/p&gt;
-</content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;如果一个服务器是以JSON这种形式来返回结果，那在某些情况，我们希望在返回前对结果进行校验，确定某些重要的字段在合法的范围或者符合其他的一些什么条件（而并不是校验这个JSON字符串是不是符合JSON的语法规则，比如少了一个引号等），本文会介绍一种使用C++实现的对JSON字段进行校验的方法。本文基于&lt;a href=&quot;https://github.com/open-source-parsers/jsoncpp&quot;&gt;jsoncpp&lt;/a&gt;来实现。&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="C++" scheme="http://lixipeng.me/categories/C/"/>
-    
-    
-      <category term="json" scheme="http://lixipeng.me/tags/json/"/>
-    
-      <category term="validation" scheme="http://lixipeng.me/tags/validation/"/>
-    
-  </entry>
   
   <entry>
     <title>手贱</title>
@@ -93,27 +39,6 @@
       <category term="git" scheme="http://lixipeng.me/tags/git/"/>
     
       <category term="config" scheme="http://lixipeng.me/tags/config/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>为你感到骄傲</title>
-    <link href="http://lixipeng.me/2016-06/proud/"/>
-    <id>http://lixipeng.me/2016-06/proud/</id>
-    <published>2016-06-29T05:43:00.000Z</published>
-    <updated>2016-06-29T06:27:31.000Z</updated>
-    
-    <content type="html">&lt;p&gt;看了很多美剧和美国电影，演绎的当然不是我周遭的生活，有很多东西是我不曾经历过的。我印象很深的事情有一个，父母经常会会抱着他们的孩子说：I’m proud of you. 或者某些情况下，孩子受伤了，要死了，也都很在意，自己有没有让父母感觉到proud，有时他们会把这个当做他们最重要的事情来看待。&lt;br&gt;&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;&lt;br&gt;文化差异也好，文化输出也罢，我觉得这个感觉很美好，作为子女想要让自己的父母为自己感到骄傲。尽管我身边的各种父母，都愿意四处炫耀他们的孩子怎么光宗耀祖，但我没觉得那时让他们感觉到“骄傲”，不像是他们发自内心的为自己的孩子有所成就而感到开心，反而是为自己感到骄傲，你看，这是我养出来的孩子。&lt;br&gt;中国人家庭观念的确很重，但这种家庭观念和大多数美剧或者美国电影中反复强调的宗旨“family”好像有些不同，速度与激情系列里面，Dom总是把“family”放在嘴边，他们的family是一群人发自内心的互相维护，互相帮助，哪怕没有血缘关系；而维系中国家庭的唯一纽带可能就是血缘关系，因为就算你和你的邻居再好，也不会觉得你们是一家。有些时候，我觉得中国的家庭就和当年的生产队一样，只是为了便于管理。这样说可能有些绝情，但有些时候就是这个样子的。&lt;br&gt;生产队之间总会比较一下谁活做的最多，谁的庄家长得最好，所以中国的家庭也热衷于做这件事情，比。在家庭层面上，过的比别人好可能是很多人毕生的心愿。这很难扯到对错，只是有时候，在这个层面上的追求往往就忽略了个人的情感。作为父母，盼着孩子有出息，一方面确实是希望自己的孩子能够过上好的生活，但这一切后面还是为了证明，我们家能够过得比别人好。这种事情总是有标准的，就像考试，98分就是比97分高，你家孩子每个月赚1000块就是没有我们家孩子每个月2000块屌。这让我觉得很可悲。&lt;br&gt;我相信有很多人都像我一样，有自己的目标，为什么要有这个目标先不说，但每个人都会为了自己的目标奋斗。我个人是结果导向型的，我很赞同老罗说的，有些事情过程不重要，结果重要。用2年时间画出一幅画，好看就是好看，不好看就是不好看，2年又怎么了，一辈子画出一副屎一样的画来也终究是屎，不要说自己多么努力，投入了多少精力，付出了多少心血，屎就是屎。这个很无情的，可是这个社会就是这么运作的，老师可能会因为看到你的努力多给10分，但是他很难在你卷面不及格的时候给你满分，这的确很残酷，但是给你满分了对那些真的满分的同学又是不公平的，哪怕他每天吃喝嫖赌。谁让指标只有一个呢？在学校里的评价指标就只有分数，如果努力也可以打分的话，可能你会在那一项上得满分，但可惜的是没有。&lt;br&gt;事情就是这么运作的，你没有理由要求别人理解你，看到你的努力。可是真的就是这样吗？&lt;br&gt;我觉得可以不是。别人可以看不到，但是我真的很希望我们最亲近的人能够看到。当你真的很努力的时候，虽然最后失败了，或者结果没有那么好，别人很“无情”的但不得不说很“公正”的没有让你得到那么多的时候，我真的希望有些人能够站出来支持你，最起码你的家人应该充当这个角色，这可能是在整个事情中唯一能够体现出温情的环节了。我有些觉得这是他们的职责所在。恰恰相反，你最亲近的人可能在你失败的时候苛责你，漠视你的努力，觉得你没有得到他们觉得你应该得到的，他们所谓的“关心”，“望子成龙，望女成凤”，“恨铁不成钢”，可是铁就是铁啊&lt;br&gt;好，我们说这是教育方法的问题，退一大大大步讲，父母也是为了你着想，也是希望你好，那好，还有另外一种情况：你其实没有做到，你父母也知道你没有做到，你也知道你父母知道你没有做到，你父母也知道你知道他们知道你没有做到，但是他们去和别人说你做到了。天呐，这多操蛋啊？又可悲，又可恨。可悲的是他们虚荣成那个样子，把面子看的比什么都重要，比自己的孩子都重要；可恨的是他们这么做比漠视自己孩子的努力还要严重，他们直接否定了。&lt;br&gt;我经历过这种事情，事情已经很久了但还是很难释怀。可能有人又会说我太敏感了，it’s not a big deal. 真的是吗？如果你们是不知道，随便一说，那好，笑笑就过去了，如果我知道你不是这么在乎，可能我还会纠正你一下；但你明明知道，还要这样，不就是想维护你们那点自尊心吗？你们的自尊心可以了，那我的呢？是我敏感吗？我尽了我最大的努力，争取到了我能争取到的最好的，可你们表现出的是：你现在这样让我们觉得有点说不出口，所以我只能吹嘘一点。我要多不敏感才能一笑了之呢？&lt;br&gt;我努力了，我得到多少就得到多少，可能最后的结果不好，我也不喜欢，但是我为我自己在这个过程中感到骄傲，你们可以漠视我的努力，不为我感到骄傲也行，但别觉得我丢人行么，这不是你们应该做的事情吧，我想。&lt;/p&gt;
-</content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;看了很多美剧和美国电影，演绎的当然不是我周遭的生活，有很多东西是我不曾经历过的。我印象很深的事情有一个，父母经常会会抱着他们的孩子说：I’m proud of you. 或者某些情况下，孩子受伤了，要死了，也都很在意，自己有没有让父母感觉到proud，有时他们会把这个当做他们最重要的事情来看待。&lt;br&gt;
-    
-    </summary>
-    
-      <category term="碎碎碎碎念" scheme="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
-    
     
   </entry>
   
@@ -565,82 +490,6 @@ valgrind --leak-check=yes libido arg2 ... &amp;amp;&amp;gt; memleak.report.1
   </entry>
   
   <entry>
-    <title>你要成功，这很重要</title>
-    <link href="http://lixipeng.me/2014-10/malaoluo/"/>
-    <id>http://lixipeng.me/2014-10/malaoluo/</id>
-    <published>2014-10-30T12:33:30.000Z</published>
-    <updated>2016-03-06T06:44:29.000Z</updated>
-    
-    <content type="html">&lt;p&gt;Smartisan T1 降价以来，看到无数人都在骂老罗，我就很奇怪，手机降价了为什么还要被骂&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;。思来想去，感觉只有一种情况让我觉得尚且在情理之中：那些之前买了手机的人，觉得被坑了，所以破口大骂，就像那些高价买了房子的业主，面对着跳水的房价，内心的愤怒并非来源于自己花了冤枉钱，而是来自于别人可能不用花冤枉钱。不过看来看去，却始终没有找到这种人。说脏话的始终都是那些贵了也不买，便宜了也不买的人。&lt;br&gt;我始终想说他们傻逼，因为他们除了“乔布斯重新定义了手机，罗永浩重新定义了傻逼”“我要是买你手机我就是个锤子（这句听起来还挺厚道的，至少和‘谁买了谁就是个锤子’比起来）”，看的有点反胃恶心了。&lt;br&gt;我就想起老罗那句话：&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;别人一骂我，我就很局促，因为骂的不对，不在点上；别人一夸我，我就很扭捏，因为夸的还不够&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;当然这个好像是萧伯纳说的。&lt;/p&gt;
-&lt;hr&gt;
-&lt;p&gt;我觉得没什么可骂的。&lt;br&gt;我记得去年过年的时候在家里跟家里人聊天，谈到了保险的事情，我大姐说听说保险其实还挺黑的，你看他收了你那么多钱，但他们业务员会分走一大半（这点不做考证）。&lt;br&gt;然后我说事情不能这么看，你不需要考虑你买的东西的成本，也不需要考虑你付的钱到底怎么分配，因为你在付钱的时候，你是认可了和你付出的代价等价的所接受的服务的价值的。&lt;br&gt;购买行为到底是不是等价交换呢，如果这个“价”是“价值”的话，可能马克思觉得是，但我觉得不是，如果是价值的话，那就是凝结在商品中无差别的人类劳动的总和，决定价值量的是社会必要的劳动时间，是定下来的。可能也就意味着，一袋大米只应该兑换一桶食用油。那如果我喜欢的话，我可以花高价去购买商品，只要我认可就行了啊。所以我刚刚还找我三舅确定了一下，我们俩基本认为这个等价交换并不是事实上的等价交换，而是你认为是等价交换就好了。&lt;br&gt;但有一点很重要，就是这个过程中并没有欺诈行为产生，这个应该很好理解。&lt;br&gt;总结起来就是，如果当时对方对你在信息完备的情况下做了承诺，你在接受了各种信息的基础上做出了购买行为，而后对方对你的承诺一一兑现，那这个消费过程就是很健康的。&lt;br&gt;在Smartisan T1这件事情里，老罗并没有欺诈行为，他说是JDI屏，就是JDI的屏，说是骁龙量产的最快的CPU，就是量产最快的CPU，真材实料，属于兑现了承诺；除此之外，老罗并没有承诺该手机一年或者某个时间段内不会降价，所以现在降价也不是背信弃义，再说，怎么可能不降价（时间确实短了一点，但这个和他们公司的战略有关），当然，老罗更没有承诺我降价不会一下降1000块。所以感觉没有什么好骂的。&lt;br&gt;要说伤心呢，可能还是有一点点伤心的，毕竟在大家都骂老罗的时候，这些人站出来，真金白银的支持老罗，现在被“摆了一道”，可能感觉有些想不通。&lt;br&gt;但话说回来，相信买了手机的大部分还是了解老罗的为人，但凡老罗语录听过几遍的人，应该不难理解一个问题，那就是这个过程实际上不涉及到谁欠谁的，就像有人说老罗要对新东方感恩，老罗的意思是为什么呢，我讲课，我拿工资，谁也不欠谁的，我为什么要感恩？&lt;br&gt;老罗做的不是公益事业，你花钱买手机，我也没骗你，事实上我也不欠你。我不是基金会，你的钱不是白白给我的，你是买手机的。&lt;br&gt;虽然这么看有点绝情，但我想理性一点的还是能想通的。如果是我，至少现在我想象一下自己17号买了手机，然后18号降价一千，我可能会很生气，可能也会自己骂，但绝对不会让别人知道。（我这是谦虚&lt;br&gt;你要是嫌贵就别买得了，我当时看了手机给出的结论也是：不贵，但性价比不高&lt;br&gt;难道买个手机主要目的是为了人家感恩戴德么&lt;/p&gt;
-&lt;hr&gt;
-&lt;p&gt;另外有人拿出老罗当初发的“2500”的微博说事，要是开个玩笑就算了，当真了就是秀下限了。那是发布价行吗？真是不懂那些刷孙子爷爷的人到底是真傻逼还是装傻逼。至于情怀，那不是别人塞给你的，是你由内而外生发的，需要谁来负责么。不想说了，感觉犯愁，看不到希望。&lt;/p&gt;
-&lt;p&gt;我作为一个没有买这个手机的人，无论怎么在这说，都没有什么说服力，不过幸运的事我并不想说服谁。&lt;/p&gt;
-&lt;p&gt;还是那句话，我只觉得自己所生活的并非人间。&lt;/p&gt;
-&lt;p&gt;老罗加油。&lt;/p&gt;
-&lt;p&gt;当然也可能事实上你真的变了（虽然我不信吧），但即使这样，也没关系，我是给我知道的那个老罗加油，也是给那个说：&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;通过干干净净赚钱，让人相信干干净净的赚钱是可能的；&lt;br&gt;通过实现理想，让人相信实现理想是可能的；&lt;br&gt;通过改变世界，让人相信改变世界时可能的。&lt;br&gt;&lt;strong&gt;尤其是在中国&lt;/strong&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;加油。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;/img/1030/laoluo1.png&quot; alt=&quot;可能吧&quot;&gt;&lt;br&gt;&lt;img src=&quot;/img/1030/laoluo2.png&quot; alt=&quot;真是可爱(*^__^*) ……&quot;&gt;&lt;/p&gt;
-&lt;p&gt;那个网友说的挺对的，如果你成功了，那就证明着一种价值观的成功，这很重要。水杯在手里徐徐跳动。&lt;/p&gt;
-</content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;Smartisan T1 降价以来，看到无数人都在骂老罗，我就很奇怪，手机降价了为什么还要被骂
-    
-    </summary>
-    
-      <category term="碎碎碎碎念" scheme="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
-    
-    
-      <category term="老罗" scheme="http://lixipeng.me/tags/%E8%80%81%E7%BD%97/"/>
-    
-      <category term="smartisan" scheme="http://lixipeng.me/tags/smartisan/"/>
-    
-      <category term="T1" scheme="http://lixipeng.me/tags/T1/"/>
-    
-      <category term="罗永浩" scheme="http://lixipeng.me/tags/%E7%BD%97%E6%B0%B8%E6%B5%A9/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>享年</title>
-    <link href="http://lixipeng.me/2014-09/xiangnian/"/>
-    <id>http://lixipeng.me/2014-09/xiangnian/</id>
-    <published>2014-09-27T04:00:45.000Z</published>
-    <updated>2016-03-06T06:44:29.000Z</updated>
-    
-    <content type="html">&lt;p&gt;今天坐火车回家，路过唐山，突然想起来本科时候给我们上毛概课的杨凤永老师，记得他说过他是唐山人。&lt;br&gt;于是就和当时一起选他的课的同学叙旧，刚说了没几句，同学说，他不是已经过世了么？&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;&lt;br&gt;我就有点蒙了，以为他开玩笑呢。然后他说是吴克峰老师微博上发过。所以我就去吴克峰老师的微博上去找，最后真的找到了，是今年的二月份，按兄弟所说，享年54岁。&lt;/p&gt;
-&lt;hr&gt;
-&lt;p&gt;我一直觉得杨老师是一个很好的老师，不仅仅是今天，平时也会时不时的想起来。我记得还是郭仁朋学长推荐的毛概老师，最后上的也很开心。唯一有点小遗憾的是，最后毛概只有80分，不过强哥小柳她们也都有90多，我记得我答的特别好，唯一不足的是我应该是在试卷上把老师的名字写错了。因为我一直记不清到底是杨风永，还是杨凤永，杨老师第一次上课的时候肯定是在黑板上写了自己名字的，但这个就像单词，我永远都记不清immediately的t后面有没有e，只要一次没记牢，就没有别的机会了。毕竟是男老师，潜意识里觉得不是凤吧。&lt;br&gt;所以我觉得之所以分那么低，是因为我把老师的名字写错了。但到底原因是什么，到现在也不知道，而且看这种情况，可能永远不会知道原因了。哦，我记得放暑假？的时候，我查了分，因为觉得低，还给杨老师发了一条短信，大意就是老师你好你看我上课这么这么认真书上的内容背的那么那么熟练最后的卷子上写的怎么怎么清楚，为啥只有80分捏？但最后老师也没有回，老师到底有没有看到短信，好像也永远都不会知道了。&lt;/p&gt;
-&lt;hr&gt;
-&lt;p&gt;在本科里，印象很深的老师一只手是可以数的出来的。&lt;br&gt;首先是耿薇老师，在我印象中，燕姐好像都没有数落过我们，但我记得有一天早晨上高代课，好像因为有同学来的比较晚，然后耿薇老师就把我们骂了一顿，我就是在那个时候发现自己是个抖M的… 毕竟高中的时候老师骂人还是比较日常的，到大学之后突然一下子没人管了，也挺失落的，所以感觉这个老师真好。还有就是耿薇老师讲的真的很好，虽然我都没太听懂吧… 也不用投影仪，就一直板书，感觉很亲切，而且讲的很明白，不像其他老师，自己的PPT都不知道说的啥，天哪，太恶心了；&lt;br&gt;然后是艾老。诶… 咋说呢… 不想说了… 据说他的课被停了？反正无论是因为什么原因，以后要是谁再否认社会在进步，我就分分钟打他脸；&lt;br&gt;还有一个林晨老师。也还好吧，听了一学期的大学语文课，虽然当时他说的一些东西，到现在玩味起来，也不觉得都是对的，印象中最深的是他说天津没有女孩，因为天津方言的问题，然后学天津话，又学了苏州话？，大家也是很开心。但我之所以对这一段印象比较深刻，是因为大三没课的时候，我去蹭了一节林晨老师给文学院？上得一节专业课，他又表演了一次。我是对梗有洁癖的人，这让我觉得很尴尬。所以我就不明白了，当时作为一个艾粉，我尼玛竟然为了占位子，把第一节军事理论课听了两遍… 感觉好大的污点，自己不是一个干净的人了。然后林晨老师说他信佛，但他又是党员，怎么说呢，有点别扭。我是一个；&lt;br&gt;还有一个吴克峰老师。近代史没有选到，但是大三没课的时候去蹭了几节，这也是唯一和兄弟之间的接触了。印象比较深的就是吴克峰老师经常一字一顿地说：“是不是这样，就是这个样子”。&lt;br&gt;最后就是杨凤永老师，他和吴克峰老师给我的感觉都是正直而真实。那一学期就最后给划范围的时候他才翻开书，其他的时候都是他在讲他的事情。听得真实津津有味，感觉是一个非常有经历的人，好像上山下乡过，然后在监狱工作过，贩卖过草莓？和鱼，等等等等。讲唐山地震时候的事情，讲他没有入党的事情等等等等。虽然细节都记不清了，但现在想起一些轮廓，还是能噌的一下记起他在讲台上抽烟的样子，眼圈里有一些晶莹的小东西，这种对自己并不在乎的规则大肆亵渎的男人，简直是太性感了。他好像还喝酒，就是在他身上好像能看到梁纯的一些东西，都很真实。这种真实让你觉得这才是一个老师的样子。比起其他老师道貌岸然，冠冕堂皇，让你不由得就爱上他。某些老师我就不说了，你再和学生打成一片，也别竖中指啊，弄得我都很尴尬你知道吗？&lt;br&gt;再其他的老师我就不说了，自己上课不备课，你上课怎么能不备课呢？你是老师你知道吗？&lt;/p&gt;
-&lt;hr&gt;
-&lt;p&gt;对杨老师具体的事情都记不清了，真的就只剩下一个轮廓，这个轮廓是也是当时留下来的，所以会时不时的想起来，但想起来的还就只是这个轮廓，记得他是一个好老师，但为什么好来着？不记得了诶。&lt;br&gt;记得他是一个很有经历的人，才五十几岁，可能就是因为平时烟抽得太多了，酒也喝的太多了，一直过着他想要的生活。&lt;br&gt;所以谁过世了都说享年多少多少，但有多少人是真的在活着的时候在享受生活呢&lt;/p&gt;
-</content>
-    
-    <summary type="html">
-    
-      &lt;p&gt;今天坐火车回家，路过唐山，突然想起来本科时候给我们上毛概课的杨凤永老师，记得他说过他是唐山人。&lt;br&gt;于是就和当时一起选他的课的同学叙旧，刚说了没几句，同学说，他不是已经过世了么？
-    
-    </summary>
-    
-      <category term="碎碎碎碎念" scheme="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
-    
-    
-      <category term="南开大学" scheme="http://lixipeng.me/tags/%E5%8D%97%E5%BC%80%E5%A4%A7%E5%AD%A6/"/>
-    
-  </entry>
-  
-  <entry>
     <title>(chrome extension) noweibo</title>
     <link href="http://lixipeng.me/2014-09/chrome-extension-noweibo/"/>
     <id>http://lixipeng.me/2014-09/chrome-extension-noweibo/</id>
@@ -819,48 +668,6 @@ valgrind --leak-check=yes libido arg2 ... &amp;amp;&amp;gt; memleak.report.1
       <category term="gdb" scheme="http://lixipeng.me/tags/gdb/"/>
     
       <category term="coredumped" scheme="http://lixipeng.me/tags/coredumped/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>帮我捡一下糖就好</title>
-    <link href="http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/"/>
-    <id>http://lixipeng.me/2014-05/pick-up-the-candy-for-me-please/</id>
-    <published>2014-05-31T06:46:34.000Z</published>
-    <updated>2016-03-06T06:44:29.000Z</updated>
-    
-    <content type="html">&lt;blockquote&gt;
-&lt;p&gt;暮投石壕村，有吏夜捉人。老翁逾墙走，老妇出门看。&lt;br&gt;吏呼一何怒，妇啼一何苦。听妇前致词，三男邺城戍。&lt;br&gt;一男附书至，二男新战死。存者且偷生，死者长已矣！&lt;/p&gt;
-&lt;a id=&quot;more&quot;&gt;&lt;/a&gt;
-&lt;p&gt;室中更无人，惟有乳下孙。有孙母未去，出入无完裙。&lt;br&gt;老妪力虽衰，请从吏夜归。急应河阳役，犹得备晨炊。&lt;br&gt;夜久语声绝，如闻泣幽咽。天明登前途，独与老翁别。&lt;/p&gt;
-&lt;p&gt;&lt;em&gt;杜甫 《石壕吏》&lt;/em&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;没上学的时候我姐就教我背这个，还背《再别康桥》和《木兰辞》，当时我大姐上学每次放假回来，第一件事就是让我背一遍这些，搞得我现在想忘都忘不掉，以至于到现在傲娇的说这些。&lt;br&gt;当时我妈说，第一句最后的那个“老妇出门看”如果改成“老妇出看门”，意思也没怎么变，反而更通顺了。现在想想，我觉得还是“出看门”更好。“出门看”，应该是老妇打开门然后四处张望的样子；但实际上，我想象中的官兵抓壮丁应该是一大队人，然后举着火把，当当当的敲门，这个时候老妇应该是想知道门那里发生了什么事情什么的，所以是去“看门”。&lt;br&gt;后来我问，当时杜甫不也是一个官儿吗？战火纷飞的，人家老两口好心好意的收留你过夜，抓壮丁的来了，你都不出来帮忙说句话，有点说不过去吧？不过等到上课的时候，我也没有提过这个问题，因为人家作者是要“反应‘安史之乱’引起的战争给广大人民的沉重灾难，表达了诗人对劳动人民的深切同情”。&lt;/p&gt;
-&lt;hr&gt;
-&lt;p&gt;那个视频我无论如何都不敢看，是真的不敢看。过程可以想象的到，视频就是不敢看。&lt;br&gt;很难想象一个人就那么被打死了。&lt;br&gt;很多人都在声讨周围的人为什么不冲上去帮个忙什么的，可能如果是他们在场，确实会挺身而出，我也不想否认这一点。&lt;br&gt;我记得我大一还是大二的时候，学院里评“十大最人”，我搞到了“最幽默”和“最有正义感”两个。“最幽默”我觉得实至名归，要说逗逼，鹏宝还是很出色的。“最有正义感”，基本大家都得到了一票，而我得到了两票，所以花落我家。在前面做展示的时候，我记得我说：&lt;br&gt;其实大家都是充满了正义感，只是恰巧我有两票而已。我并没有做什么充满正义感的事情，我也觉得，其实正义感并不一定要在大是大非前才能得到体现。平时的生活中也是可以有正义感的。&lt;br&gt;大体是这样子。&lt;br&gt;大三的时候，二主楼频频有绅士出没，有一次我们学院的一个学妹在上自习的时候，发现前面的一个男生（绅士）在偷拍前面的女生还是怎么样的，然后就拿出手机拍了照片，传到了人人网上。结果包括很多女生在内的很多同学对其进行了严厉的指责，质问她为什么不当场制止，后来那个学妹也很委屈。&lt;br&gt;我还翻了半天，找到了当时发的状态：&lt;br&gt;&lt;img src=&quot;/img/0531/1.PNG&quot; alt=&quot;&quot;&gt;&lt;br&gt;&lt;img src=&quot;/img/0531/2.PNG&quot; alt=&quot;&quot;&gt;&lt;br&gt;很难办的。&lt;br&gt;所以你如果问我，要是我在场，会不会冲上去制止他们？我的答案是，不知道，更可能是不会。&lt;br&gt;有些事情想起来可能真的非常简单，当时如果在场的所有人都冲上去了，那很有可能最后不会发生这种悲剧。有时候你也想，你说为啥在场的人不伸一把手呢，看着一个女人被活活打死，一点反应都没有，你觉得如果是你的话，肯定会奋不顾身的冲上去。我相信在场的所有人都会想着到底要不要帮个忙，尽管最后大家都没有行动，只是带着恐惧围观。我觉得这也很好啊，至少比大家什么都没有想，仍然按地不动，该吃汉堡吃汉堡，该喝可乐喝可乐要好得多。&lt;br&gt;要是只有一个人冲上去了，很显然，他也可能会被打死。&lt;br&gt;每个人都想要冲上去，每个人也都知道如果大家一起冲上去肯定能够避免悲剧发生，每个人也都会怕，如果自己冲上去了，别人没有动怎么办？&lt;br&gt;这是一个囚徒困境，理性人都是会选择坦白从宽的。&lt;br&gt;理性人就是会带着恐惧围观的，当然，人是有限理性的，所以可能真的有人冲上去，那如果这个人真的被打死了，周围的人怎么想呢？幸亏我没上。那以后再遇到这种事情，他连想都不会想了，因为他知道冲上去就会被打死。&lt;br&gt;这是一个演化博弈的过程，选择原地不动是进化稳定策略。&lt;br&gt;如果一个人的一罐糖撒在地上，路过的人可能毫不犹豫停下脚步，帮忙捡一下；如果一个人被另一个绝对不会采取过激行为的人无情的羞辱，你也可能会挺身而出与之争辩；如果只需要你一拳一巴掌就能够控制住场面，可能你也会豪不吝啬。&lt;br&gt;&lt;img src=&quot;/img/0531/3.PNG&quot; alt=&quot;&quot;&gt;&lt;br&gt;你仍然不会犹豫吗？&lt;br&gt;当你用冷冰冰的博弈论去分析这些事情的时候，看起来有些无情是吧。我们还是希望社会上多一些“不理性”的人，去做出一些能够让人感到温暖的事情。&lt;br&gt;我们一直被告知，遇到事情不要自己轻举妄动，要试图报警，让更专业的人来处理，以避免不必要的伤害。然而真的发生了这种事，又都希望所有人轻举妄动，来体现正义感。&lt;br&gt;很难办的。&lt;br&gt;看到有一条评论：如果你带着你的女朋友去吃饭，突然发生了这种事，难道你直接抛下女朋友就冲上去了吗？&lt;br&gt;有些事情看起来其实很简单，但真的就简单的去看待这些事情吗？在场的每一个人，都有家人，都有父母，都承担了各种角色，真的能随随便便就抛弃了吗？万一，出现了意外，那你爸爸妈妈怎么办？你的爱人？你的儿子？颁发一个“见义勇为”称号，能弥补一切吗？能弥补白发人送黑发人的悲伤？能弥补失去爱人的断肠？能弥补失去父亲的凄凉？都不能，当然，这能够弘扬社会主义核心价值观，给予不正之风以沉重的打击，毫无疑问，对于个人来说，代价太大了。对不起，使用了蹩脚的押韵排比句。&lt;br&gt;这是不是自私？是，但这也是一种责任感。&lt;br&gt;这是不是懦弱？是，但这也是一种无奈。&lt;br&gt;况且，自私不对吗？懦弱又怎么了？&lt;br&gt;我妈从很久很久以前就告诉我不要见义勇为，告诉我只要保证自己不做坏事就行了，当时我还呲之以鼻，现在长大了一点，感觉能够体会到她的心情。&lt;br&gt;有些人假定了很多理想的状况，最理想的就是那些见义勇为的人不会受到伤害。&lt;/p&gt;
-&lt;hr&gt;
-&lt;p&gt;人是有限理性的动物，同时也是无限感性的动物。很可能平时看起来懦弱的人，在遇到这种事情的时候，脑袋一热，冲了上去；而平时那些全身充满了正义感，比如嘴上，的人，脑袋一热，转身走了。&lt;br&gt;哪有什么有预谋的见义勇为，哪有什么毫不犹豫，都是脑袋一热。&lt;br&gt;这次见义勇为断了一条胳膊，下次再遇到，还会冲上去吗？有人说，我还是会毫不犹豫地冲上去！&lt;br&gt;你知不知道你吃个饭都得你媳妇你妈一口一口喂你？&lt;br&gt;那些家里媳妇生孩子了，父亲重病过世了，仍然坚持给学生上完课，仍然奋斗在生产第一线的人，干嘛呢这是？&lt;br&gt;别人可以觉得这个光荣，唯独你不行。&lt;/p&gt;
-&lt;hr&gt;
-&lt;p&gt;如果所有人都不做坏事，那可能就不需要那么多的见义勇为，大家都能相安无事，这也是理想的状况，所以仍然需要有些人放弃自己，挺身而出，对于这些人，我由衷的感到敬佩，因为他做到了我可能做不到的事情，不过仅此而已。&lt;/p&gt;
-&lt;p&gt;总会有人在这个时候搬出马丁·尼莫拉的忏悔文：&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;当纳粹追杀共产主义者&lt;br&gt;我保持沉默&lt;br&gt;——我不是共产主义者&lt;br&gt;当他们追杀社会民主主义者&lt;br&gt;我保持沉默&lt;br&gt;——我不是社会民主主义者&lt;br&gt;当他们追杀工会成员&lt;br&gt;我没站出来说话&lt;br&gt;——我不是工会成员&lt;br&gt;当他们追杀犹太人&lt;br&gt;我保持沉默&lt;br&gt;——我不是犹太人&lt;br&gt;当他们要追杀我&lt;br&gt;再也没有人为我说话了&lt;/p&gt;
-&lt;p&gt;&lt;em&gt;弗里德里希·古斯塔夫·埃米尔·马丁·尼莫拉 反纳粹忏悔文 《起初他们》&lt;/em&gt;&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;说的难听一点，今天你站出来，就是为了有人能为你站出来吗？&lt;br&gt;不可否认的是，如果大家互相站出来，那么这个社会可能变得更有凝聚力。&lt;br&gt;但如果我是受害者，如果帮助我会给别人带来很严重的伤害 ，那就不要为我站出来了，你有你的责任，你有你的角色，你有你自己的生活，如果你真的占了出来，我不知道有多感谢，但如果没有，没关系，我可能也会这么做的。&lt;br&gt;不过如果我的糖罐撒了，还是麻烦帮我捡一下吧~ 我们一起吃糖&lt;br&gt;或者肥皂&lt;/p&gt;
-</content>
-    
-    <summary type="html">
-    
-      &lt;blockquote&gt;
-&lt;p&gt;暮投石壕村，有吏夜捉人。老翁逾墙走，老妇出门看。&lt;br&gt;吏呼一何怒，妇啼一何苦。听妇前致词，三男邺城戍。&lt;br&gt;一男附书至，二男新战死。存者且偷生，死者长已矣！&lt;/p&gt;
-    
-    </summary>
-    
-      <category term="碎碎碎碎念" scheme="http://lixipeng.me/categories/%E7%A2%8E%E7%A2%8E%E7%A2%8E%E7%A2%8E%E5%BF%B5/"/>
-    
-    
-      <category term="招远" scheme="http://lixipeng.me/tags/%E6%8B%9B%E8%BF%9C/"/>
     
   </entry>
   
